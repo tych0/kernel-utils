@@ -23,6 +23,8 @@ config:
     lxc.console = none
     lxc.cgroup.devices.deny = c 5:1 rwm
     lxc.seccomp =
+    # This isn't required, but if you are trying to c/r on a mainline kernel
+    # you need this because the mount feature is Ubuntu specific.
     lxc.aa_allow_incomplete = 1
 EOF
 
