@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -e
+set -x
+
+lxc config set core.trust_password foo
+lxc config set core.https_address 0.0.0.0:8443
+
+if [ "$(lxc image list | grep -c wily)" -eq "0" ]; then
+  $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu wily --alias wily
+fi
+
+# privilged migratable is in the db by default, but we may also want to test
+# with an unpriv one.
+if [ "$(lxc profile list | grep -c unpriv-migratable)" -eq "0" ]; then
+  lxc profile create unpriv-migratable
+fi
+
+lxc profile edit unpriv-migratable <<EOF
+name: unpriv-migratable
+config:
+  raw.lxc: |
+    lxc.console = none
+    lxc.cgroup.devices.deny = c 5:1 rwm
+    lxc.seccomp =
+EOF
+
+# pretend there are two hosts
+if [ "$(lxc remote list | grep -c host1)" -eq "0" ]; then
+  (echo y; sleep 1; echo foo) | lxc remote add host1 http://0.0.0.0:8443
+fi
+
+if [ "$(lxc remote list | grep -c host2)" -eq "0" ]; then
+  (echo y) | lxc remote add host2 http://0.0.0.0:8443
+fi
+
+container=unpriv
+
+# create the container
+if [ "$(lxc list | grep -c $container)" -eq "0" ]; then
+  lxc init wily -p default -p unpriv-migratable $container
+fi
