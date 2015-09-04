@@ -23,6 +23,7 @@ config:
     lxc.console = none
     lxc.cgroup.devices.deny = c 5:1 rwm
     lxc.seccomp =
+    lxc.aa_allow_incomplete = 1
 EOF
 
 # pretend there are two hosts
