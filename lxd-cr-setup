@@ -3,11 +3,13 @@
 set -e
 set -x
 
+series=wily
+
 lxc config set core.trust_password foo
 lxc config set core.https_address 0.0.0.0:8443
 
-if [ "$(lxc image list | grep -c wily)" -eq "0" ]; then
-  $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu wily --alias wily
+if [ "$(lxc image list | grep -c $series)" -eq "0" ]; then
+  $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu $series --alias $series
 fi
 
 # privilged migratable is in the db by default, but we may also want to test
@@ -41,5 +43,5 @@ container=unpriv
 
 # create the container
 if [ "$(lxc list | grep -c $container)" -eq "0" ]; then
-  lxc init wily -p default -p unpriv-migratable $container
+  lxc init $series -p default -p unpriv-migratable $container
 fi
