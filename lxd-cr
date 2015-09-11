@@ -18,7 +18,7 @@ else
   dest_name=$container_alt
 fi
 
-if [ "$(lxc list $source: | grep '\<$name\>' | grep -ci RUNNING)" -eq "0" ]; then
+if [ "$(lxc list $source: | grep "\<$name\>" | grep -ci RUNNING)" -eq "0" ]; then
   lxc start $source:$name
   sleep 2
 fi
