@@ -45,3 +45,9 @@ container=unpriv
 if [ "$(lxc list | grep -c $container)" -eq "0" ]; then
   lxc init $series -p default -p unpriv-migratable $container
 fi
+
+container=priv
+
+if [ "$(lxc list | grep -c '\<$container\>')" -eq "0" ]; then
+  lxc init $series -p default -p migratable $container
+fi
