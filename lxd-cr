@@ -4,23 +4,18 @@ set -e
 set -x
 
 container=unpriv
-container_alt="$container"2
 
 if [ "$(lxc list host1:$container | grep -c "\<$container\>")" -eq "0" ]; then
   source=host2
   dest=host1
-  name=$container_alt
-  dest_name=$container
 else
   source=host1
   dest=host2
-  name=$container
-  dest_name=$container_alt
 fi
 
-if [ "$(lxc list $source: | grep "\<$name\>" | grep -ci RUNNING)" -eq "0" ]; then
-  lxc start $source:$name
+if [ "$(lxc list $source: | grep "\<$container\>" | grep -ci RUNNING)" -eq "0" ]; then
+  lxc start $source:$container
   sleep 2
 fi
 
-lxc move $source:$name $dest:$dest_name
+lxc move $source:$container $dest:$container
