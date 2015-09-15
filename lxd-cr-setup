@@ -14,7 +14,7 @@ function bootstrap_lxd
   port=$3
 
   if [ "$(netstat -tl | grep -c $port)" -eq "0" ]; then
-    sudo -E $GOPATH/bin/lxd --group sudo &
+    sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &
   fi
 
   while [ ! -e $LXD_DIR/unix.socket ]; do
