@@ -60,7 +60,8 @@ function setup_container
   container=$1
   profile=$2
 
-  if [ "$(lxc list | grep -c "\<$container\>")" -eq "0" ]; then
+  if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
+     [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
     lxc init $series -p default -p $profile $container
   fi
 }
