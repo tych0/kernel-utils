@@ -21,6 +21,10 @@ function bootstrap_lxd
     sleep 0.5
   done
 
+  # work around `lxc` broken-ness
+  lxc remote add temp $LXD_DIR/unix.socket
+  lxc remote set-default temp
+
   lxc config set core.trust_password foo
   lxc config set core.https_address 0.0.0.0:$port
 
@@ -52,7 +56,7 @@ EOF
     (echo y; sleep 1; echo foo) | lxc remote add $remote http://0.0.0.0:$port
   fi
 
-  unset LXD_DIR
+  lxc remote remove temp
 }
 
 function setup_container
