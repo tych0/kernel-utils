@@ -52,7 +52,6 @@ EOF
 
   fi
 
-  # pretend there are two hosts
   if [ "$(lxc remote list | grep -c $remote)" -eq "0" ]; then
     (echo y; sleep 1; echo foo) | lxc remote add $remote http://0.0.0.0:$port
   fi
@@ -74,6 +73,8 @@ function setup_container
 
 bootstrap_lxd $LXD1_DIR host1 8443
 bootstrap_lxd $LXD2_DIR host2 8444
+
+export LXD_DIR=$LXD1_DIR
 
 setup_container unpriv unpriv-migratable
 setup_container priv migratable
