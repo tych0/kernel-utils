@@ -77,4 +77,4 @@ bootstrap_lxd $LXD2_DIR host2 8444
 export LXD_DIR=$LXD1_DIR
 
 setup_container unpriv unpriv-migratable
-setup_container priv migratable
+# setup_container priv migratable
