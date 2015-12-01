@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+set -x
+
+container=unpriv
+
+if [ "$(lxc list host1:$container | grep -c "\<$container\>")" -eq "0" ]; then
+  host=host2
+else
+  host=host1
+fi
+
+lxc stop --force $host:$container || true
+sudo killall lxd
+./lxd-cr-setup
