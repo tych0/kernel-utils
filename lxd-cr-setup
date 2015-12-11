@@ -3,7 +3,7 @@
 set -e
 set -x
 
-series=wily
+series=xenial
 LXD1_DIR=/var/lib/lxd
 LXD2_DIR=/var/lib/lxd2
 
