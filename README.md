@@ -4,6 +4,12 @@ This is a collection of scripts I use to hack on container related stuff. I
 publish them here mostly so I can sync them with all of my VMs, but perhaps
 they will be useful to someone else.
 
+# to build criu quickly
+
+    sudo apt-get install build-essential protobuf-compiler protobuf-c-compiler libprotobuf-dev libnl-3-dev
+    git clone https://github.com/xemul/criu
+    cd criu && make -j4
+
 ## usage
 
     # initial setup (though it is idempotent, so you can run it on each e.g.
