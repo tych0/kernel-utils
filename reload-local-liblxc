@@ -13,4 +13,4 @@ fi
 
 lxc stop --force $host:$container || true
 sudo killall lxd
-./lxd-cr-setup
+./lxd-cr-local-setup
