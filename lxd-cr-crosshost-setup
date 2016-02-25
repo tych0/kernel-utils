@@ -7,6 +7,9 @@ series=xenial
 LXD1=criu.local
 LXD2=criu2.local
 
+export GOPATH=/home/ubuntu/packages/go
+export LXD_DIR=/var/lib/lxd
+
 function bootstrap_lxd
 {
   host=$1
@@ -17,13 +20,17 @@ function bootstrap_lxd
     ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
   fi
 
+  while ssh $host "test ! -e $LXD_DIR/unix.socket"; do
+    sleep 0.5
+  done
+
   ssh $host lxc config set core.trust_password foo
   ssh $host lxc config set core.https_address 0.0.0.0:8443
 
-  lxc remote delete $remote || true
+  lxc remote remove $remote || true
   lxc remote add $remote $host --accept-certificate --password=foo
 
-  if [ "$(lxc image list $remote | grep -c $series)" -eq "0" ]; then
+  if [ "$(lxc image list $remote: | grep -c $series)" -eq "0" ]; then
     ssh $host $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu $series --alias $series
   fi
 }
