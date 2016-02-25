@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+set -x
+
+series=xenial
+LXD1=criu.local
+LXD2=criu2.local
+
+function bootstrap_lxd
+{
+  host=$1
+  remote=$2
+
+  if [ "$(ssh $host netstat -tl | grep -c 8443)" -eq "0" ]; then
+    ssh $host sudo rm $LXD_DIR/unix.socket || true
+    ssh $host sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &
+  fi
+
+  ssh $host lxc config set core.trust_password foo
+  ssh $host lxc config set core.https_address 0.0.0.0:8443
+
+  lxc remote delete $remote || true
+  lxc remote add $remote $host --accept-certificate --password=foo
+
+  if [ "$(lxc image list $remote | grep -c $series)" -eq "0" ]; then
+    ssh $host $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu $series --alias $series
+  fi
+}
+
+function setup_container
+{
+  container=$1
+
+  if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
+     [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
+    lxc init $series -p default -p $profile $container
+  fi
+}
+
+bootstrap_lxd $LXD1 host1
+bootstrap_lxd $LXD2 host2
+
+setup_container unpriv
