@@ -14,7 +14,7 @@ function bootstrap_lxd
 
   if [ "$(ssh $host netstat -tl | grep -c 8443)" -eq "0" ]; then
     ssh $host sudo rm $LXD_DIR/unix.socket || true
-    ssh $host sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &
+    ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
   fi
 
   ssh $host lxc config set core.trust_password foo
