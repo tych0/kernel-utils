@@ -57,7 +57,7 @@ function setup_container
 
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init host1:$series -p migratable host1:$container
+    lxc init host1:$series -p default -p migratable host1:$container
   fi
 }
 
