@@ -25,6 +25,9 @@ function bootstrap_lxd
     sleep 0.5
   done
 
+  # do a lxd init
+  # ssh $host sudo $GOPATH/bin/lxd init --auto --storage-backend zfs --storage-pool lxd --storage-create-loop 5
+
   ssh $host lxc config set core.trust_password foo
   ssh $host lxc config set core.https_address 0.0.0.0:8443
 
