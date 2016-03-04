@@ -33,6 +33,19 @@ function bootstrap_lxd
   lxc remote remove $remote || true
   lxc remote add $remote $host --accept-certificate --password=foo
 
+  if [ "$(lxc profile list $remote: | grep -c migratable)" -eq "0" ]; then
+    lxc profile create $remote:migratable
+
+    lxc profile edit $remote:migratable <<EOF
+name: migratable
+config:
+  raw.lxc: |
+    lxc.console = none
+    lxc.cgroup.devices.deny = c 5:1 rwm
+EOF
+
+  fi
+
   if [ "$(lxc image list $remote: | grep -c $series)" -eq "0" ]; then
     ssh $host $GOPATH/src/github.com/lxc/lxd/scripts/lxd-images import ubuntu $series --alias $series
   fi
@@ -44,7 +57,7 @@ function setup_container
 
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init $series host1:$container
+    lxc init host1:$series -p migratable host1:$container
   fi
 }
 
