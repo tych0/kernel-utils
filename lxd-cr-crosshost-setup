@@ -16,10 +16,9 @@ function bootstrap_lxd
   host=$1
   remote=$2
 
-  if [ "$(ssh $host netstat -tl | grep -c 8443)" -eq "0" ]; then
-    ssh $host sudo rm $LXD_DIR/unix.socket || true
-    ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
-  fi
+  ssh $host sudo killall lxd || true
+  ssh $host sudo rm $LXD_DIR/unix.socket || true
+  ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
 
   while ssh $host "test ! -e $LXD_DIR/unix.socket"; do
     sleep 0.5
