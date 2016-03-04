@@ -16,7 +16,11 @@ function bootstrap_lxd
   host=$1
   remote=$2
 
+  if [ $(lxc list $remote: | grep -c "\<unpriv\>") -eq "1" ]; then
+    lxc stop --force $remote:unpriv || true
+  fi
   ssh $host sudo killall lxd || true
+
   ssh $host sudo rm $LXD_DIR/unix.socket || true
   ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
 
