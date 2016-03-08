@@ -4,6 +4,7 @@ set -e
 set -x
 
 series=xenial
+bridge=lxcbr0
 # for whatever reason, avahi seems to not work in between vms
 LXD1=$(avahi-resolve -n criu.local -4 | cut -f2)
 LXD2=$(avahi-resolve -n criu2.local -4 | cut -f2)
@@ -58,6 +59,12 @@ config:
   raw.lxc: |
     lxc.console = none
     lxc.cgroup.devices.deny = c 5:1 rwm
+devices:
+  eth0:
+    type: nic
+    nictype: bridged
+    name: eth0
+    parent: $bridge
 EOF
 
   fi
@@ -73,7 +80,7 @@ function setup_container
 
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init host1:$series -p default -p migratable host1:$container
+    lxc init host1:$series -p migratable host1:$container
   fi
 }
 
