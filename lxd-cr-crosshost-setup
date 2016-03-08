@@ -11,6 +11,15 @@ LXD2=$(avahi-resolve -n criu2.local -4 | cut -f2)
 export GOPATH=/home/ubuntu/packages/go
 export LXD_DIR=/var/lib/lxd
 
+function btrfs_init
+{
+  host=$1
+  ssh $host truncate -s 100G /tmp/lxd.btrfs
+  ssh $host mkfs.btrfs /tmp/lxd.btrfs
+  ssh $host sudo mkdir -p "${LXD_DIR}"
+  ssh $host sudo mount -o loop /tmp/lxd.btrfs "${LXD_DIR}"
+}
+
 function bootstrap_lxd
 {
   host=$1
@@ -21,6 +30,9 @@ function bootstrap_lxd
   fi
   ssh $host sudo killall lxd || true
 
+  # btrfs?
+  # btrfs_init $host
+
   ssh $host sudo rm $LXD_DIR/unix.socket || true
   ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
 
@@ -28,7 +40,7 @@ function bootstrap_lxd
     sleep 0.5
   done
 
-  # do a lxd init
+  # zfs?
   # ssh $host sudo $GOPATH/bin/lxd init --auto --storage-backend zfs --storage-pool lxd --storage-create-loop 5
 
   ssh $host lxc config set core.trust_password foo
