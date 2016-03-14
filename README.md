@@ -6,7 +6,7 @@ they will be useful to someone else.
 
 # to build criu quickly
 
-    sudo apt-get install build-essential protobuf-compiler protobuf-c-compiler libprotobuf-dev libnl-3-dev
+    sudo apt-get install build-essential protobuf-compiler protobuf-c-compiler libprotobuf-dev libnl-3-dev libcap-dev
     git clone https://github.com/xemul/criu
     cd criu && make -j4
 
