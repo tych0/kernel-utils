@@ -50,15 +50,11 @@ function bootstrap_lxd
   lxc remote remove $remote || true
   lxc remote add $remote $host --accept-certificate --password=foo
 
-  if [ "$(lxc profile list $remote: | grep -c migratable)" -eq "0" ]; then
+  if [ "$bridge" != "lxcbr0" ] && [ "$(lxc profile list $remote: | grep -c migratable)" -eq "0" ]; then
     lxc profile create $remote:migratable
 
     lxc profile edit $remote:migratable <<EOF
 name: migratable
-config:
-  raw.lxc: |
-    lxc.console = none
-    lxc.cgroup.devices.deny = c 5:1 rwm
 devices:
   eth0:
     type: nic
@@ -78,9 +74,14 @@ function setup_container
 {
   container=$1
 
+  profile=default
+  if [ "$bridge" != "lxcbr0" ]; then
+    profile=migratable
+  fi
+
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init host1:$series -p migratable host1:$container
+    lxc init host1:$series -p $profile host1:$container
   fi
 }
 
