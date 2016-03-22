@@ -6,7 +6,6 @@ set -x
 series=xenial
 bridge=lxcbr0
 
-remoteprefix=host
 hostprefix=criu
 
 # for whatever reason, avahi seems to not work in between vms
@@ -33,17 +32,21 @@ function bootstrap_lxd
   if [ $(lxc list $remote: | grep -c "\<unpriv\>") -eq "1" ]; then
     lxc stop --force $remote:unpriv || true
   fi
-  ssh $host sudo killall lxd || true
 
-  # btrfs?
-  # btrfs_init $host
+  # restart everything if this is a development LXD
+  if [ "$(ssh $host which lxd)" != "/usr/bin/lxd" ]; then
+    ssh $host sudo killall lxd || true
 
-  ssh $host sudo rm $LXD_DIR/unix.socket || true
-  ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
+    # btrfs?
+    # btrfs_init $host
 
-  while ssh $host "test ! -e $LXD_DIR/unix.socket"; do
-    sleep 0.5
-  done
+    ssh $host sudo rm $LXD_DIR/unix.socket || true
+    ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
+
+    while ssh $host "test ! -e $LXD_DIR/unix.socket"; do
+      sleep 0.5
+    done
+  fi
 
   # zfs?
   # ssh $host sudo $GOPATH/bin/lxd init --auto --storage-backend zfs --storage-pool lxd --storage-create-loop 5
@@ -85,11 +88,11 @@ function setup_container
 
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init ${remoteprefix}1:$series -p $profile host1:$container
+    lxc init host1:$series -p $profile host1:$container
   fi
 }
 
-bootstrap_lxd $LXD1 ${remoteprefix}1
-bootstrap_lxd $LXD2 ${remoteprefix}2
+bootstrap_lxd $LXD1 host1
+bootstrap_lxd $LXD2 host2
 
 setup_container unpriv
