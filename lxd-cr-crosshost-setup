@@ -35,6 +35,7 @@ function bootstrap_lxd
 
   # restart everything if this is a development LXD
   if [ "$(ssh $host which lxd)" != "/usr/bin/lxd" ]; then
+    ssh $host sudo /usr/lib/x86_64-linux-gnu/lxc/lxc-net start || true
     ssh $host sudo killall lxd || true
 
     # btrfs?
