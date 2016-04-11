@@ -4,7 +4,7 @@ set -e
 set -x
 
 series=xenial
-bridge=lxcbr0
+bridge=lxdbr0
 
 hostprefix=criu
 
@@ -84,7 +84,7 @@ function setup_container
   container=$1
 
   profile=default
-  if [ "$bridge" != "lxcbr0" ]; then
+  if [ "$bridge" != "lxdbr0" ]; then
     profile=migratable
   fi
 
