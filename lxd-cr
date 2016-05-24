@@ -22,4 +22,4 @@ if [ "$(lxc list $source: | grep "\<$container\>" | grep -ci RUNNING)" -eq "0" ]
   sleep 2
 fi
 
-lxc move $source:$container $dest:$container
+time lxc move $source:$container $dest:$container
