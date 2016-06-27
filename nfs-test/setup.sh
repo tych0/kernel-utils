@@ -41,15 +41,19 @@ function setup_nfs_client
 
 
     juju ssh $juju_host -- sudo apt update
-    juju ssh $juju_host -- sudo apt install -y nfs-common
+    juju ssh $juju_host -- sudo apt install -y nfs-common criu
+    juju ssh $juju_host -- sudo apt install -y linux-image-extra-`uname -r`
     juju ssh $juju_host -- sudo mkdir /nfs    
     juju ssh $juju_host -- sudo mount -t nfs $nfshost_ip:/home/ubuntu /nfs
+
+    juju ssh $juju_host -- sh -c "hostname >> hostname.txt"
 
 }
 
 IP_1=`get_internal_ip $1`
 
 juju scp ./nfshost.sh $1:/home/ubuntu/nfshost.sh
+juju scp ./migrate-loop.sh $1:/home/ubuntu/migrate-loop.sh
 
 juju ssh $1 /home/ubuntu/nfshost.sh
 
@@ -64,10 +68,13 @@ function check_nfs_on_container
     nfs_host=$2
     container_host=$3
     juju ssh $nfs_host lxc exec $container_host:$container -- cat /nfs/afile.txt
-    juju ssh $nfs_host lxc exec $container_host:$container -- "echo '\nadded on $container' >> /nfs/afile.txt"
+#    juju ssh $nfs_host lxc exec $container_host:$container -- "echo '\nadded on $container' >> /nfs/afile.txt"
 }
 
 juju ssh $1 lxc launch host-$2:$series host-$2:container
 juju ssh $1 lxc config device add container nfs disk source=/nfs path=/nfs
+#juju ssh $1 lxc config device add container nfs disk source=/home/ubuntu path=/mnt/parent
+
+#juju scp ./container.sh $1:/home/ubuntu/container.sh
 
 check_nfs_on_container container $1 host-$2
