@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+set -x
+
+container=foo
+host=host1
+
+if [ "$(lxc list $host: | grep "\<$container\>" | grep -ci RUNNING)" -eq "0" ]; then
+  lxc start --stateless $host:$container
+fi
+
+lxc exec $host:$container -- ps ax --format pid,ppid,sid,command
+
+lxc stop --stateful $host:$container
+lxc start $host:$container
+lxc stop --force $host:$container
