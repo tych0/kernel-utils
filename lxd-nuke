@@ -1,6 +1,9 @@
 #!/bin/bash
 
-host=dev
+host=$1
+if [ -z "$1" ]; then
+  host=dev.local
+fi
 
 # explicitly don't use set -e here, because all of these can fail and we don't
 # care.
