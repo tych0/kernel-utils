@@ -1,0 +1,5 @@
+to configure the container:
+
+put load.service in /lib/systemd/system
+systemctl enable load
+systemctl start load

@@ -1,0 +1,5 @@
+[Unit]
+Description=sample load for containers
+
+[service]
+ExecStart=/usr/bin/daemon --unsafe /nfs/container-utils/nfs-test/load.sh
