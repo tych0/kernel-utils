@@ -72,7 +72,7 @@ function check_nfs_on_container
 }
 
 juju ssh $1 lxc launch host-$2:$series host-$2:container
-juju ssh $1 lxc config device add container nfs disk source=/nfs path=/nfs
+juju ssh $1 lxc config device add host-$2:container nfs disk source=/nfs path=/nfs
 #juju ssh $1 lxc config device add container nfs disk source=/home/ubuntu path=/mnt/parent
 
 #juju scp ./container.sh $1:/home/ubuntu/container.sh
