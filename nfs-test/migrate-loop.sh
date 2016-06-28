@@ -28,11 +28,15 @@ function do_cr() {
   fi
 
   if [ "$(lxc list $source: | grep "\<$container\>" | grep -ci RUNNING)" -eq "0" ]; then
-    lxc start $source:$container
-    sleep 2
+      echo "starting $source:$container"
+      lxc start $source:$container
+      sleeptime=`rand -N 1 -M 4`
+      echo "waiting $sleeptime seconds"
+      sleep $sleeptime
   fi
 
   bad=0
+  echo "moving $source:$container to $dest:$container"
   lxc move $source:$container $dest:$container > /tmp/out || bad=1
   if [ "${bad}" -eq 1 ]; then
     # dumplog="${sourcelogs}/$(sudo ls -1 ${sourcelogs} | grep dump | tail -n1)"
@@ -56,15 +60,20 @@ function do_cr() {
     result="success"
   fi
 
-  lxc stop $source:$container --force &> /dev/null || true
-  lxc stop $dest:$container --force &> /dev/null || true
+  num=$RANDOM
+  let "num %= 2"
+  if [ "$num" -eq 1 ]; then
+      echo "stopping containers"
+      lxc stop $source:$container --force &> /dev/null || true
+      lxc stop $dest:$container --force &> /dev/null || true
+  fi
 }
 
 mkdir -p failurelogs
 
 while true; do
   echo "=========> starting c/r cycle"
-  do_cr
+  do_cr || true
   echo "=========> finished c/r: " ${result}
-  echo "successes:" ${successes} "failures:" ${failures} "running after dump failure:" ${running_after_dump_failurea}
+  echo "successes:" ${successes} "failures:" ${failures} "running after dump failure:" ${running_after_dump_failures}
 done
