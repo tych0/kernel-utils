@@ -1,5 +1,9 @@
 [Unit]
 Description=sample load for containers
 
-[service]
-ExecStart=/usr/bin/daemon --unsafe /nfs/container-utils/nfs-test/load.sh
+[Service]
+ExecStart=/nfs/container-utils/nfs-test/load.sh
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target

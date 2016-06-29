@@ -33,6 +33,7 @@ function do_cr() {
       sleeptime=`rand -N 1 -M 4`
       echo "waiting $sleeptime seconds"
       sleep $sleeptime
+      lxc exec $source:$container systemctl start load
   fi
 
   bad=0
