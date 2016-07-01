@@ -30,7 +30,7 @@ function do_cr() {
   if [ "$(lxc list $source: | grep "\<$container\>" | grep -ci RUNNING)" -eq "0" ]; then
       echo "starting $source:$container"
       lxc start $source:$container
-      sleeptime=`rand -N 1 -M 4`
+      sleeptime=$(($(rand -N 1 -M 4)+1))
       echo "waiting $sleeptime seconds"
       sleep $sleeptime
       lxc exec $source:$container systemctl start load
