@@ -65,6 +65,9 @@ function do_cr() {
   let "num %= 2"
   if [ "$num" -eq 1 ]; then
       echo "stopping containers"
+      # to avoid nfs deadlocking, let's try to stop the load first
+      lxc exec $source:$container -- systemctl stop load || true
+      lxc exec $dest:$container -- systemctl stop load || true
       lxc stop $source:$container --force &> /dev/null || true
       lxc stop $dest:$container --force &> /dev/null || true
   fi
