@@ -24,6 +24,16 @@ function btrfs_init
   ssh $host sudo mount -o loop /tmp/lxd.btrfs "${LXD_DIR}"
 }
 
+function lvm_init
+{
+  host=$1
+  ssh $host sudo apt install thin-provisioning-tools lvm2
+  ssh $host truncate -s 40G /tmp/lxd.lvm
+  pvloopdev=$(ssh $host sudo losetup --show -f /tmp/lxd.lvm)
+  ssh $host sudo pvcreate "${pvloopdev}"
+  ssh $host sudo vgcreate lxd "${pvloopdev}"
+}
+
 function bootstrap_lxd
 {
   host=$1
@@ -41,12 +51,19 @@ function bootstrap_lxd
     # btrfs?
     # btrfs_init $host
 
+    # lvm? also uncomment below
+    # lvm_init $host
+
     ssh $host sudo rm $LXD_DIR/unix.socket || true
     ssh $host "sudo -E $GOPATH/bin/lxd --group sudo --debug &> /tmp/lxd$port &"
 
     while ssh $host "test ! -e $LXD_DIR/unix.socket"; do
       sleep 0.5
     done
+
+    # more lvm
+    # ssh $host lxc config set storage.lvm_volume_size 10GiB
+    # ssh $host lxc config set storage.lvm_vg_name lxd
   fi
 
   # zfs?

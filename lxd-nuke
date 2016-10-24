@@ -15,4 +15,7 @@ done
 
 ssh $host sudo killall lxd
 ssh $host sudo zpool destroy -f lxd
+ssh $host sudo vgremove -f lxd
 ssh $host sudo rm -rf /var/lib/lxd
+
+ssh $host sudo rm -rf /tmp/lxd.lvm
