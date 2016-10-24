@@ -4,7 +4,6 @@ set -e
 set -x
 
 series=xenial
-bridge=lxdbr0
 
 hostprefix=dev
 
@@ -76,20 +75,8 @@ function bootstrap_lxd
   lxc remote remove $remote || true
   lxc remote add $remote $host --accept-certificate --password=foo
 
-  if [ "$bridge" != "lxcbr0" ] && [ "$(lxc profile list $remote: | grep -c migratable)" -eq "0" ]; then
-    lxc profile create $remote:migratable
-
-    lxc profile edit $remote:migratable <<EOF
-name: migratable
-devices:
-  eth0:
-    type: nic
-    nictype: bridged
-    name: eth0
-    parent: $bridge
-EOF
-
-  fi
+  ssh $host lxc network create lxdbr0 "ipv4.address=10.42.69.1/24" "ipv4.nat=true" "ipv6.address=none"
+  ssh $host lxc network attach-profile lxdbr0 default eth0
 
   if [ "$(lxc image list $remote: | grep -c $series)" -eq "0" ]; then
     lxc image copy ubuntu:$series $remote: --alias $series --auto-update
@@ -100,14 +87,9 @@ function setup_container
 {
   container=$1
 
-  profile=default
-  if [ "$bridge" != "lxdbr0" ]; then
-    profile=migratable
-  fi
-
   if [ "$(lxc list host1: | grep -c "\<$container\>")" -eq "0" ] &&
      [ "$(lxc list host2: | grep -c "\<$container\>")" -eq "0" ]; then
-    lxc init host1:$series -p $profile host1:$container
+    lxc init host1:$series host1:$container
   fi
 }
 

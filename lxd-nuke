@@ -13,6 +13,8 @@ for container in $(ssh $host lxc list --force-local | tail -n+3 | grep "^| " | c
 	ssh $host lxc delete "${container}" --force-local -f || true
 done
 
+ssh $host lxc network delete lxdbr0
+
 ssh $host sudo killall lxd
 ssh $host sudo zpool destroy -f lxd
 ssh $host sudo vgremove -f lxd
