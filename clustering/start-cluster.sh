@@ -10,6 +10,7 @@ n=3
 
 for i in $(seq 1 $n); do
   LXD_DIR=/tmp/lxd$i screen -d -m -S lxd$i sudo -E "${LXD}" --group sudo
+  sleep 3s  # stagger the i/o a bit.
 done
 
 for i in $(seq 1 $n); do
