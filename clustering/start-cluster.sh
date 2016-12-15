@@ -9,7 +9,9 @@ LXC="${GOPATH}/bin/lxc"
 n=3
 
 for i in $(seq 1 $n); do
-  LXD_DIR=/tmp/lxd$i screen -d -m -S lxd$i sudo -E "${LXD}" --group sudo
+  LXD_DIR=/tmp/lxd$i screen -d -m -S lxd$i
+  screen -S lxd$i -X stuff "mkdir /tmp/lxd$i && cd /tmp/lxd$i\n"
+  screen -S lxd$i -X stuff "sudo -E ${LXD} --group sudo\n"
   sleep 3s  # stagger the i/o a bit.
 done
 
