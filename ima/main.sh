@@ -64,6 +64,6 @@ cat "/sys/kernel/security/ima/$nsid/policy"
 
 cat /sys/kernel/security/ima/ascii_runtime_measurements
 echo "goodbye" > $FILE
-setuid $user strace unshare -r cat $FILE
+setuid $user unshare -U cat $FILE
 echo file access succeeded?
 cat /sys/kernel/security/ima/ascii_runtime_measurements
