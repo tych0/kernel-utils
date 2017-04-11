@@ -36,7 +36,8 @@ echo "enabling ima for $nsid"
 echo "$nsid" > /sys/kernel/security/ima/namespaces
 echo my pid: $$
 
-printf "appraise uid=$user\nappraise func=MODULE_CHECK" > "/sys/kernel/security/ima/$nsid/policy"
+EXT4_SUPER_MAGIC=0xef53
+printf "appraise fsmagic=$EXT4_SUPER_MAGIC uid=$user\nappraise func=MODULE_CHECK" > "/sys/kernel/security/ima/$nsid/policy"
 # printf "appraise fowner=$user\nappraise func=MODULE_CHECK" > "/sys/kernel/security/ima/$nsid/policy"
 # printf "measure uid=$user" > "/sys/kernel/security/ima/$nsid/policy"
 # printf "measure" > "/sys/kernel/security/ima/$nsid/policy"
