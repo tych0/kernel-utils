@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+from datadiff import diff
+import sys
+
+VALUE_NORMALIZATION = {
+    "m": True,
+    "y": True,
+}
+
+def collect_config(f):
+    config = {}
+    for line in f:
+        if "=" not in line:
+            continue
+        [option, value] = line.strip().split("=")
+        config[option] = VALUE_NORMALIZATION.get(value, value)
+    return config
+
+if len(sys.argv) < 3:
+    print("kcdiff one.config two.config")
+    sys.exit(1)
+
+with open(sys.argv[1]) as f:
+    one = collect_config(f)
+
+with open(sys.argv[2]) as f:
+    two = collect_config(f)
+
+
+print(diff(one, two))
