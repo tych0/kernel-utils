@@ -2476,8 +2476,7 @@ CONFIG_BCMA_POSSIBLE=y
 # Graphics support
 #
 # CONFIG_AGP is not set
-CONFIG_VGA_ARB=y
-CONFIG_VGA_ARB_MAX_GPUS=16
+# CONFIG_VGA_ARB is not set
 # CONFIG_VGA_SWITCHEROO is not set
 # CONFIG_DRM is not set
 
