@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 4.13.0-rc4 Kernel Configuration
+# Linux/x86 4.13.0 Kernel Configuration
 #
 CONFIG_64BIT=y
 CONFIG_X86_64=y
@@ -1391,6 +1391,7 @@ CONFIG_SCSI_MOD=y
 CONFIG_SCSI=y
 CONFIG_SCSI_DMA=y
 # CONFIG_SCSI_NETLINK is not set
+# CONFIG_SCSI_MQ_DEFAULT is not set
 CONFIG_SCSI_PROC_FS=y
 
 #
@@ -3373,6 +3374,7 @@ CONFIG_ARCH_HAS_KCOV=y
 # Debug Lockups and Hangs
 #
 # CONFIG_SOFTLOCKUP_DETECTOR is not set
+CONFIG_HARDLOCKUP_CHECK_TIMESTAMP=y
 # CONFIG_HARDLOCKUP_DETECTOR is not set
 # CONFIG_DETECT_HUNG_TASK is not set
 # CONFIG_WQ_WATCHDOG is not set
