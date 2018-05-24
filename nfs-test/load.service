@@ -1,9 +1,0 @@
-[Unit]
-Description=sample load for containers
-
-[Service]
-ExecStart=/nfs/container-utils/nfs-test/load.sh
-User=ubuntu
-
-[Install]
-WantedBy=multi-user.target

@@ -1,8 +1,0 @@
-to configure the container:
-
-put load.service in /lib/systemd/system
-systemctl enable load
-systemctl start load
-
-for whatever reason this doesn't autostart. I fucked around with it for about
-an hour and gave up because I got frustrated.
