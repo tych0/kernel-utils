@@ -16,7 +16,7 @@
 #include <linux/ptrace.h>
 #include <pthread.h>
 
-#define NUM_THREADS 10000
+#define NUM_THREADS 1000
 #define NUM_QUERIES 10000
 
 #ifndef SECCOMP_FILTER_FLAG_GET_LISTENER
@@ -47,8 +47,7 @@ static int respond_with_pid(int listener, int syscall)
 
 	ret = read(listener, &req, sizeof(req));
 	if (ret < 0) {
-		perror("respond read");
-		return -1;
+		return ret;
 	}
 
 	resp.id = req.id;
@@ -62,8 +61,7 @@ static int respond_with_pid(int listener, int syscall)
 
 	ret = write(listener, &resp, sizeof(resp));
 	if (ret < 0) {
-		perror("write");
-		return -1;
+		return ret;
 	}
 
 	return 0;
@@ -94,7 +92,7 @@ static int filter_syscall(int syscall_nr)
 	return ret;
 }
 
-void *thread(void *arg)
+void *tracee(void *arg)
 {
 	bool *failure = arg;
 	pid_t pid = syscall(__NR_gettid);
@@ -113,35 +111,60 @@ void *thread(void *arg)
 	return NULL;
 }
 
+struct responder_arg {
+	bool *failure;
+	int listener;
+};
+
+void *responder(void *arg)
+{
+	struct responder_arg *resp = arg;
+
+	while (1) {
+		int ret;
+
+		ret = respond_with_pid(resp->listener, __NR_open);
+		if (ret < 0) {
+			if (errno != EBADF) {
+				perror("couldn't respond with pid");
+				*(resp->failure) = true;
+				close(resp->listener);
+			}
+			break;
+		}
+	}
+
+	return NULL;
+}
+
 int main(int argc, char **argv)
 {
-	pthread_t threads[NUM_THREADS];
+	pthread_t tracees[NUM_THREADS], responders[NUM_THREADS];
 	int i, ret = 1, listener = -1;
 	bool failure = false;
+	struct responder_arg responder_arg = {.failure = &failure};
 
 	/* every thread has the same filter */
 	listener = filter_syscall(__NR_open);
 	if (listener < 0)
 		return 1;
+	responder_arg.listener = listener;
 
 	/* spawn n threads using that filter */
 	for (i = 0; i < NUM_THREADS; i++) {
-		if (pthread_create(&threads[i], NULL, thread, &failure))
+		if (pthread_create(&responders[i], NULL, responder, &responder_arg))
 			goto out;
 	}
 
-	/* answer n queries from each thread */
-	for (i = 0; i < NUM_THREADS * NUM_QUERIES; i++) {
-		if (i % NUM_THREADS == 0) {
-			printf(".");
-			fflush(stdout);
-		}
-		if (failure || respond_with_pid(listener, __NR_open) < 0) {
-			failure = true;
-			break;
-		}
+	for (i = 0; i < NUM_THREADS; i++) {
+		if (pthread_create(&tracees[i], NULL, tracee, &failure))
+			goto out;
 	}
-	printf("\n");
+
+	/* make sure the tracees die */
+	for (i = 0; i < NUM_THREADS; i++) {
+		pthread_join(tracees[i], NULL);
+	}
 
 	if (!failure)
 		printf("all responses sent\n");
@@ -149,10 +172,7 @@ int main(int argc, char **argv)
 	close(listener);
 	listener = -1;
 
-	/* make sure the threads die */
-	for (i = 0; i < NUM_THREADS; i++) {
-		pthread_join(threads[i], NULL);
-	}
+	/* and the tracers we just leave them and exit(). lazy. */
 
 	if (!failure)
 		ret = 0;
