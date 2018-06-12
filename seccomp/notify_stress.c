@@ -20,7 +20,7 @@
 #define NUM_QUERIES 10000
 
 #ifndef SECCOMP_FILTER_FLAG_GET_LISTENER
-#define SECCOMP_FILTER_FLAG_GET_LISTENER 4
+#define SECCOMP_FILTER_FLAG_GET_LISTENER (1UL << 3)
 
 #define SECCOMP_RET_USER_NOTIF 0x7fc00000U
 
@@ -36,6 +36,7 @@ struct seccomp_notif_resp {
 	__s64 val;
 	__u8 return_fd;
 	__u32 fd;
+	__u32 fd_flags;
 };
 #endif
 
