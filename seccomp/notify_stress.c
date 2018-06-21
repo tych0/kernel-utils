@@ -19,8 +19,8 @@
 #define NUM_THREADS 1000
 #define NUM_QUERIES 10000
 
-#ifndef SECCOMP_FILTER_FLAG_GET_LISTENER
-#define SECCOMP_FILTER_FLAG_GET_LISTENER (1UL << 3)
+#ifndef SECCOMP_FILTER_FLAG_NEW_LISTENER
+#define SECCOMP_FILTER_FLAG_NEW_LISTENER (1UL << 3)
 
 #define SECCOMP_RET_USER_NOTIF 0x7fc00000U
 
@@ -84,7 +84,7 @@ static int filter_syscall(int syscall_nr)
 
 	int ret;
 
-	ret = syscall(__NR_seccomp, SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_GET_LISTENER, &bpf_prog);
+	ret = syscall(__NR_seccomp, SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_NEW_LISTENER, &bpf_prog);
 	if (ret < 0) {
 		perror("prctl failed");
 		return -1;
