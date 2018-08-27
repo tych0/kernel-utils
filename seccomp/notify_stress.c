@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <sys/ptrace.h>
+#include <sys/ioctl.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
 #include <linux/ptrace.h>
@@ -25,12 +26,15 @@
 #define SECCOMP_RET_USER_NOTIF 0x7fc00000U
 
 struct seccomp_notif {
+	__u16 len;
 	__u64 id;
-	pid_t pid;
+	__u32 pid;
+	__u8 signalled;
 	struct seccomp_data data;
 };
 
 struct seccomp_notif_resp {
+	__u16 len;
 	__u64 id;
 	__s32 error;
 	__s64 val;
@@ -38,19 +42,29 @@ struct seccomp_notif_resp {
 	__u32 fd;
 	__u32 fd_flags;
 };
+
+#define SECCOMP_IOC_MAGIC               0xF7
+#define SECCOMP_NOTIF_RECV              _IOWR(SECCOMP_IOC_MAGIC, 0,     \
+						struct seccomp_notif)
+#define SECCOMP_NOTIF_SEND              _IOWR(SECCOMP_IOC_MAGIC, 1,     \
+						struct seccomp_notif_resp)
+#define SECCOMP_NOTIF_IS_ID_VALID       _IOR(SECCOMP_IOC_MAGIC, 2,      \
+						__u64)
 #endif
 
 static int respond_with_pid(int listener, int syscall)
 {
-	struct seccomp_notif req;
+	struct seccomp_notif req = {};
 	struct seccomp_notif_resp resp = {};
 	ssize_t ret;
 
-	ret = read(listener, &req, sizeof(req));
+	req.len = sizeof(req);
+	ret = ioctl(listener, SECCOMP_NOTIF_RECV, &req);
 	if (ret < 0) {
 		return ret;
 	}
 
+	resp.len = sizeof(resp);
 	resp.id = req.id;
 	if (req.data.nr != syscall) {
 		resp.error = -ENOSYS;
@@ -60,10 +74,9 @@ static int respond_with_pid(int listener, int syscall)
 		resp.val = req.pid;
 	}
 
-	ret = write(listener, &resp, sizeof(resp));
-	if (ret < 0) {
+	ret = ioctl(listener, SECCOMP_NOTIF_SEND, &resp);
+	if (ret < 0)
 		return ret;
-	}
 
 	return 0;
 }
