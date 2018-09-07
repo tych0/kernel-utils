@@ -43,12 +43,12 @@ struct seccomp_notif_resp {
 };
 
 #define SECCOMP_IOC_MAGIC               0xF7
-#define SECCOMP_NOTIF_RECV              _IOWR(SECCOMP_IOC_MAGIC, 0,     \
-						struct seccomp_notif)
-#define SECCOMP_NOTIF_SEND              _IOWR(SECCOMP_IOC_MAGIC, 1,     \
-						struct seccomp_notif_resp)
-#define SECCOMP_NOTIF_IS_ID_VALID       _IOR(SECCOMP_IOC_MAGIC, 2,      \
-						__u64)
+#define SECCOMP_NOTIF_RECV	_IOWR(SECCOMP_IOC_MAGIC, 0,     \
+					struct seccomp_notif)
+#define SECCOMP_NOTIF_SEND	_IOWR(SECCOMP_IOC_MAGIC, 1,     \
+					struct seccomp_notif_resp)
+#define SECCOMP_NOTIF_ID_VALID	_IOR(SECCOMP_IOC_MAGIC, 2,      \
+					__u64)
 #endif
 
 static int respond_with_pid(int listener, int syscall)
