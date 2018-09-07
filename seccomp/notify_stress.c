@@ -38,7 +38,8 @@ struct seccomp_notif_resp {
 	__u64 id;
 	__s32 error;
 	__s64 val;
-	__s32 fd;
+	__u8 return_fd;
+	__u32 fd;
 	__u32 fd_flags;
 };
 
