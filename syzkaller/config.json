@@ -1,0 +1,21 @@
+{
+	"target": "linux/amd64",
+	"http": "localhost:5000",
+	"workdir": "/home/tycho/packages/go/src/github.com/google/syzkaller/working",
+	"kernel_obj": "/home/tycho/packages/linux",
+	"image": "/var/lib/uvtool/libvirt/images/syzkaller.qcow",
+	"sshkey": "/home/tycho/.ssh/id_rsa",
+	"syzkaller": "/home/tycho/packages/go/src/github.com/google/syzkaller",
+	"enable_syscalls": [
+		"syz_open_dev$floppy",
+		"ioctl$FDGETPRM"
+	],
+	"procs": 1,
+	"type": "qemu",
+	"vm": {
+		"count": 2,
+		"cpu": 1,
+		"mem": 2048,
+        "qemu_args": "-enable-kvm -fda /home/tycho/packages/kernel-utils/syzkaller/config.json"
+	}
+}
