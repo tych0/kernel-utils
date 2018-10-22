@@ -26,27 +26,31 @@
 #define SECCOMP_RET_USER_NOTIF 0x7fc00000U
 
 struct seccomp_notif {
-	__u16 len;
 	__u64 id;
 	__u32 pid;
-	__u8 signalled;
+	__u32 flags;
 	struct seccomp_data data;
 };
 
 struct seccomp_notif_resp {
-	__u16 len;
 	__u64 id;
-	__s32 error;
 	__s64 val;
+	__s32 error;
+	__u32 flags;
 };
 
-#define SECCOMP_IOC_MAGIC               0xF7
-#define SECCOMP_NOTIF_RECV	_IOWR(SECCOMP_IOC_MAGIC, 0,     \
-					struct seccomp_notif)
-#define SECCOMP_NOTIF_SEND	_IOWR(SECCOMP_IOC_MAGIC, 1,     \
-					struct seccomp_notif_resp)
-#define SECCOMP_NOTIF_ID_VALID	_IOR(SECCOMP_IOC_MAGIC, 2,      \
-					__u64)
+#define SECCOMP_IOC_MAGIC		'!'
+#define SECCOMP_IO(nr)			_IO(SECCOMP_IOC_MAGIC, nr)
+#define SECCOMP_IOR(nr, type)		_IOR(SECCOMP_IOC_MAGIC, nr, type)
+#define SECCOMP_IOW(nr, type)		_IOW(SECCOMP_IOC_MAGIC, nr, type)
+#define SECCOMP_IOWR(nr, type)		_IOWR(SECCOMP_IOC_MAGIC, nr, type)
+
+/* Flags for seccomp notification fd ioctl. */
+#define SECCOMP_IOCTL_NOTIF_RECV	SECCOMP_IOWR(0, struct seccomp_notif)
+#define SECCOMP_IOCTL_NOTIF_SEND	SECCOMP_IOWR(1,	\
+						struct seccomp_notif_resp)
+#define SECCOMP_IOCTL_NOTIF_ID_VALID	SECCOMP_IOR(2, __u64)
+
 #endif
 
 static int respond_with_pid(int listener, int syscall)
@@ -55,13 +59,10 @@ static int respond_with_pid(int listener, int syscall)
 	struct seccomp_notif_resp resp = {};
 	ssize_t ret;
 
-	req.len = sizeof(req);
-	ret = ioctl(listener, SECCOMP_NOTIF_RECV, &req);
-	if (ret < 0) {
+	ret = ioctl(listener, SECCOMP_IOCTL_NOTIF_RECV, &req);
+	if (ret < 0)
 		return ret;
-	}
 
-	resp.len = sizeof(resp);
 	resp.id = req.id;
 	if (req.data.nr != syscall) {
 		resp.error = -ENOSYS;
@@ -71,7 +72,7 @@ static int respond_with_pid(int listener, int syscall)
 		resp.val = req.pid;
 	}
 
-	ret = ioctl(listener, SECCOMP_NOTIF_SEND, &resp);
+	ret = ioctl(listener, SECCOMP_IOCTL_NOTIF_SEND, &resp);
 	if (ret < 0)
 		return ret;
 
