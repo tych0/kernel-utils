@@ -1574,40 +1574,7 @@ CONFIG_PATA_SCH=y
 # CONFIG_PATA_ACPI is not set
 # CONFIG_ATA_GENERIC is not set
 # CONFIG_PATA_LEGACY is not set
-CONFIG_MD=y
-CONFIG_BLK_DEV_MD=y
-CONFIG_MD_AUTODETECT=y
-# CONFIG_MD_LINEAR is not set
-# CONFIG_MD_RAID0 is not set
-# CONFIG_MD_RAID1 is not set
-# CONFIG_MD_RAID10 is not set
-# CONFIG_MD_RAID456 is not set
-# CONFIG_MD_MULTIPATH is not set
-# CONFIG_MD_FAULTY is not set
-# CONFIG_BCACHE is not set
-CONFIG_BLK_DEV_DM_BUILTIN=y
-CONFIG_BLK_DEV_DM=y
-# CONFIG_DM_MQ_DEFAULT is not set
-# CONFIG_DM_DEBUG is not set
-# CONFIG_DM_UNSTRIPED is not set
-# CONFIG_DM_CRYPT is not set
-# CONFIG_DM_SNAPSHOT is not set
-# CONFIG_DM_THIN_PROVISIONING is not set
-# CONFIG_DM_CACHE is not set
-# CONFIG_DM_WRITECACHE is not set
-# CONFIG_DM_ERA is not set
-CONFIG_DM_MIRROR=y
-# CONFIG_DM_LOG_USERSPACE is not set
-# CONFIG_DM_RAID is not set
-CONFIG_DM_ZERO=y
-# CONFIG_DM_MULTIPATH is not set
-# CONFIG_DM_DELAY is not set
-# CONFIG_DM_UEVENT is not set
-# CONFIG_DM_FLAKEY is not set
-# CONFIG_DM_VERITY is not set
-# CONFIG_DM_SWITCH is not set
-# CONFIG_DM_LOG_WRITES is not set
-# CONFIG_DM_INTEGRITY is not set
+# CONFIG_MD is not set
 # CONFIG_TARGET_CORE is not set
 # CONFIG_FUSION is not set
 
@@ -1650,52 +1617,8 @@ CONFIG_VIRTIO_NET=y
 # CONFIG_FDDI is not set
 # CONFIG_HIPPI is not set
 # CONFIG_NET_SB1000 is not set
-CONFIG_MDIO_DEVICE=y
-CONFIG_MDIO_BUS=y
-# CONFIG_MDIO_BCM_UNIMAC is not set
-# CONFIG_MDIO_BITBANG is not set
-# CONFIG_MDIO_MSCC_MIIM is not set
-# CONFIG_MDIO_THUNDER is not set
-CONFIG_PHYLIB=y
-
-#
-# MII PHY device drivers
-#
-# CONFIG_AMD_PHY is not set
-# CONFIG_AQUANTIA_PHY is not set
-# CONFIG_ASIX_PHY is not set
-# CONFIG_AT803X_PHY is not set
-# CONFIG_BCM7XXX_PHY is not set
-# CONFIG_BCM87XX_PHY is not set
-# CONFIG_BROADCOM_PHY is not set
-# CONFIG_CICADA_PHY is not set
-# CONFIG_CORTINA_PHY is not set
-# CONFIG_DAVICOM_PHY is not set
-# CONFIG_DP83822_PHY is not set
-# CONFIG_DP83TC811_PHY is not set
-# CONFIG_DP83848_PHY is not set
-# CONFIG_DP83867_PHY is not set
-# CONFIG_FIXED_PHY is not set
-# CONFIG_ICPLUS_PHY is not set
-# CONFIG_INTEL_XWAY_PHY is not set
-# CONFIG_LSI_ET1011C_PHY is not set
-# CONFIG_LXT_PHY is not set
-# CONFIG_MARVELL_PHY is not set
-# CONFIG_MARVELL_10G_PHY is not set
-# CONFIG_MICREL_PHY is not set
-# CONFIG_MICROCHIP_PHY is not set
-# CONFIG_MICROCHIP_T1_PHY is not set
-# CONFIG_MICROSEMI_PHY is not set
-# CONFIG_NATIONAL_PHY is not set
-# CONFIG_QSEMI_PHY is not set
-# CONFIG_REALTEK_PHY is not set
-# CONFIG_RENESAS_PHY is not set
-# CONFIG_ROCKCHIP_PHY is not set
-# CONFIG_SMSC_PHY is not set
-# CONFIG_STE10XP is not set
-# CONFIG_TERANETICS_PHY is not set
-# CONFIG_VITESSE_PHY is not set
-# CONFIG_XILINX_GMII2RGMII is not set
+# CONFIG_MDIO_DEVICE is not set
+# CONFIG_PHYLIB is not set
 # CONFIG_PPP is not set
 # CONFIG_SLIP is not set
 
@@ -1786,7 +1709,7 @@ CONFIG_SERIAL_NONSTANDARD=y
 # CONFIG_N_GSM is not set
 # CONFIG_TRACE_SINK is not set
 CONFIG_DEVMEM=y
-CONFIG_DEVKMEM=y
+# CONFIG_DEVKMEM is not set
 
 #
 # Serial drivers
