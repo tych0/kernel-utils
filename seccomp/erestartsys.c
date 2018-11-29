@@ -75,10 +75,6 @@ typedef struct {
         uint64_t        gs;
 } user_regs_struct64;
 
-static void signal_handler(int signal)
-{
-}
-
 int main(int argc, char **argv)
 {
 	pid_t pid;
