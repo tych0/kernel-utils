@@ -1,10 +1,10 @@
 # kernel-utils
 
 This is a collection of scripts I use to hack on kernel related stuff. I
-publish them here mostly so I can sync them with all of my VMs, but perhaps
-they will be useful to someone else.
+publish them here mostly so I have somewhere to archive the scripts and little
+test programs, but maybe they will be useful to someone else.
 
-# using libvirt
+# testing kernels
 
 I use Andy Lutomirski's very helpful (virtme)[https://github.com/amluto/virtme]
 tool to test kernels.
