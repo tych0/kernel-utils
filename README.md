@@ -6,79 +6,84 @@ they will be useful to someone else.
 
 # using libvirt
 
-i am mostly lazy and use libvirt to check kernels. i should probably figure out
-how to do this better, but:
+I use Andy Lutomirski's very helpful (virtme)[https://github.com/amluto/virtme]
+tool to test kernels.
 
-    function vmcreate() {
-      release=$2
-      if [ -z "$release" ]; then
-        release=bionic
-      fi
-      echo creating vm with $release
-      uvt-kvm create --cpu 4 --memory 4000 --disk 30 --bridge virbr0 --packages avahi-daemon --password ubuntu --run-script-once ~/config/bin/vminit $1 release=$release
+That automates most of the gory bits, except for getting a rootfs, for which I
+abuse the docker hub to allow me to try multiple distros. I place my kernel
+trees in `~/packages/linux$n`, and I have the below code in my .bashrc:
+
+    VIRTME_ROOTFS=/tmp/virtme-rootfs
+    function getrootfs() {
+        arch=$1
+
+        if [ -d "$VIRTME_ROOTFS/$arch" ]; then
+            return
+        fi
+
+        mkdir -p "$VIRTME_ROOTFS"
+
+        skopeo --insecure-policy copy docker://ubuntu:latest oci:/tmp/oci:ubuntu-$arch
+        sudo umoci unpack --image /tmp/oci:ubuntu-$arch "$VIRTME_ROOTFS/$arch"
+
+        # umoci makes things opaque to us
+        sudo chmod 755 "$VIRTME_ROOTFS/$arch"
+        actual_root="$VIRTME_ROOTFS/$arch/rootfs"
+        sudo chown $USER:$USER "$actual_root"
+
+        # ubuntu kernel images don't have a /lib/modules since they're not used to
+        # having a kernel in them. let's fix that.
+        sudo mkdir -p "$actual_root/lib/modules"
+
+        # make somewhere for our home directory to be mounted
+        sudo mkdir -p "$actual_root/home/tycho"
+        sudo chown $USER:$USER "$actual_root/$HOME"
+
+        # now install some extra packages
+        sudo cp /etc/resolv.conf "$actual_root/etc/resolv.conf"
+        sudo chroot "$actual_root" apt -y update
+        sudo chroot "$actual_root" apt -y install iproute2 strace gcc make
     }
 
-	function vmsync() {
-	  releases='(bionic)'
-	  echo syncing vm release "release~$releases"
-	  sudo uvt-simplestreams-libvirt sync --source http://cloud-images.ubuntu.com/daily "release~$releases" arch=amd64
-	}
+    function runkernel() {
+        kdir=$1
+        shift
+        arch=$2
+        shift
 
-	function vmmount() {
-	  mkdir -p /tmp/$1
-	  sudo guestmount -o allow_other -i -a /var/lib/uvtool/libvirt/images/$1.qcow /tmp/$1
-	}
+        if [ -z "$kdir" ]; then
+            kdir=linux
+        fi
 
-    # needs CONFIG_DEBUG_INFO
-	function ppdmesg() {
-	  $HOME/packages/linux/scripts/decode_stacktrace.sh $HOME/packages/linux/vmlinux $HOME/packages/linux < $1
-	}
+        if [ -z "$arch" ]; then
+            arch=x86_64
+        fi
 
-with a vminit script that looks like:
+        getrootfs "$arch"
+        actual_root="$VIRTME_ROOTFS/$arch/rootfs"
 
-    #!/bin/bash
+        virtme-run \
+            --kdir "$HOME/packages/$kdir" \
+            --root "$actual_root" --rw \
+            --mods auto --arch "$arch" \
+            --cwd "$actual_root/$PWD" \
+            --term "" \
+            --rwdir "$HOME=$HOME" \
+            $@
+    }
 
-    apt -y autoremove snapd lxd open-iscsi
-    touch /etc/cloud/cloud-init.disabled
+This allows me to do things like:
 
-are all aliases I use regularly. Then I can do various things:
+    runkernel
+    runkernel linux2
+    runkernel linux3 arm64
+    runkernel linux4 arm64 --qmeu-opt ...
 
-    vmcreate foo # create
-	virsh console foo # attach to the serial console
-	virsh destroy foo # stop the vm (not delete it)
-	virsh start foo # start the vm
-	uvt-kvm destroy foo # actually delete the vm (not just stop)
+And I will end up in a rootfs for that arch with my home directory bind mounted
+in, with the init shell's PWD set to where I started runkernel from in my home
+directory. This can be useful for e.g. running the kernel's selftests from the
+kernel tree you're trying to test.
 
-I keep my kernel trees in ~/packages/linux{1,2,3...}. I use the
-make -jN bindeb-pkg target to create a debian package, and then I apply it
-with the following applykernel script:
-
-    #!/usr/bin/env bash
-
-    set -ex
-
-    # we don't use debug images in the guest, so let's not install them
-    rm -f ~/packages/linux-image*dbg*deb || true
-
-    # similarly for headers
-    rm -f ~/packages/linux-headers*deb || true
-
-    kernels=("$HOME/packages/*$(ls ~/packages/*deb -1t | head -n1 | tail -c 14)")
-    if [ "${kernels}" == "$HOME/packages/*" ]; then
-      echo "no kernels found" && exit 1
-    fi
-    echo "found kernels: ${kernels}"
-    scp $kernels $1.local:/home/ubuntu
-    needs_reboot=0
-    ssh $1.local "DEBIAN_FRONTEND=noninteractive sudo -E dpkg -i *deb" && needs_reboot=1 || true
-    ssh $1.local "rm -rf *deb"
-
-    # as of bionic, we need to do some fiddling with netplan
-    ssh $1.local "sudo sed -i -e 's/ens3/enp0s3/g' /etc/netplan/50-cloud-init.yaml"
-
-    if [ "${needs_reboot}" -eq "1" ]; then
-      ssh $1.local "sudo reboot" || true
-      rm -rf ~/packages/*changes ~/packages/*deb ~/packages/*buildinfo
-    fi
-
-
+The rootfses live in /tmp, because they're generally pretty small, so it's not
+a huge deal to re-download them on boot (I don't boot much, I just suspend).
+This also prevents them from getting too stale.
