@@ -7,6 +7,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/types.h>
+#include <linux/limits.h>
+
+static char wd[PATH_MAX];
 
 static int sleepy_open(const char *path, struct fuse_file_info *fi)
 {
@@ -17,11 +20,10 @@ static void *nested_fsync(void *)
 {
 	int fd;
 
-	fd = open("/home/tycho/packages/kernel-utils/fuse2/mount/b", O_RDONLY);
-	write(fd, "foo", 3);
-	printf("doing nested fsync\n");
+	strcat(wd, "/mount/b");
+
+	fd = open(wd, O_RDWR);
 	fsync(fd);
-	printf("nested fsync completed\n");
 	return NULL;
 }
 
@@ -110,6 +112,8 @@ const struct fuse_operations sleepy_fuse = {
 
 int main(int argc, char *argv[])
 {
+	getcwd(wd, sizeof(wd));
+
 	if (fuse_main(argc, argv, &sleepy_fuse, NULL)) {
 		printf("fuse_main failed\n");
 		exit(1);

@@ -7,7 +7,7 @@ build: fuse main
 check: fuse main
 	modprobe fuse
 	mkdir -p mount
-	unshare -Urpm --fork ./main
+	unshare -Urpm --fork --wd=$(CURDIR) ./main
 
 clean:
 	-rm -rf fuse main mount
