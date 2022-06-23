@@ -33,7 +33,7 @@ static int sleepy_write(const char *path, const char *buf, size_t size,
 
 	pthread_create(&t, NULL, nested_fsync, NULL);
 
-	return 0;
+	return size;
 }
 
 static int sleepy_flush(const char *path, struct fuse_file_info *fi)
