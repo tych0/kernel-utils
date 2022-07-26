@@ -1,0 +1,134 @@
+#!/usr/bin/env bpftrace
+/*
+ * An ever-expanding script to track down the ever-expanding list of reasons
+ * that mount can fail. A bit hacky because I don't know anything about
+ * bpftrace (can you do membership tests in associative arrays, how do you
+ * define and allocate structs, can we make retval signed by default?), patches
+ * welcome.
+ *
+ * TODO:
+ *    1. display mntopts
+ *    2. individual filesystem (ext4, xfs, and overlay are probably most common
+ *       for containers...)
+ */
+#include <linux/seccomp.h>
+
+tracepoint:syscalls:sys_enter_mount
+{
+	// these strings are all limited by the bpf max string length, which is by
+	// default 64, and capped at 200, so they will all be truncated
+	@sources[tid] = str(args->dev_name);
+	@mountpoints[tid] = str(args->dir_name);
+	@fstypes[tid] = str(args->type);
+	@mountopts[tid] = str(args->data);
+	@mountflags[tid] = args->flags;
+	@lowestfailed[tid] = probe;
+	@lowesterrno[tid] = (int64)0;
+}
+
+// seccomp can reject things before the tracepoints even get triggered
+kprobe:__secure_computing
+{
+	@seccomp_is_mnt[tid] = 0;
+	if (((struct seccomp_data *)arg0)->nr != 165) {
+		return;
+	}
+	@seccomp_is_mnt[tid] = 1;
+}
+
+kretprobe:__secure_computing
+{
+	if ((int64)retval >= 0) {
+		return;
+	}
+	$ismnt = @seccomp_is_mnt[tid];
+	delete(@seccomp_is_mnt[tid]);
+	if (!$ismnt) {
+		return;
+	}
+	printf("%-6d %-16s mount(?) rejected by seccomp", tid, comm);
+}
+
+// generic mount entrypoints
+kretprobe:do_mount,
+kretprobe:path_mount,
+kretprobe:security_sb_mount,
+kretprobe:graft_tree,
+
+// overlayfs
+kretprobe:ovl_fill_super
+{
+	if ((int64)retval >= 0) {
+		return;
+	}
+	if (@lowesterrno[tid] < 0) {
+		return;
+	}
+
+	@lowestfailed[tid] = probe;
+	@lowesterrno[tid] = (int64)retval;
+}
+
+tracepoint:syscalls:sys_exit_mount
+{
+	// i cannot for the life of me figure out how to make this a signed < 0
+	// comparison...
+	if (@lowesterrno[tid] != 0) {
+		// strings are stored on the stack as of this writing (and capped at 200),
+		// so we print them one at a time so we can get as much out of them as
+		// possible.
+		printf("%-6d %-16s mount(", tid, comm);
+		printf("%s, ", @sources[tid]);
+		printf("%s, ", @mountpoints[tid]);
+		printf("%s, ", @fstypes[tid]);
+		$flags = @mountflags[tid];
+		if ($flags & 1 << 0) {
+			printf("MS_RDONLY ");
+		}
+		if ($flags & 1 << 1) {
+			printf("MS_NOSUID ");
+		}
+		if ($flags & 1 << 2) {
+			printf("MS_NODEV ");
+		}
+		if ($flags & 1 << 3) {
+			printf("MS_NOEXEC ");
+		}
+		if ($flags & 1 << 5) {
+			printf("MS_REMOUNT ");
+		}
+		if ($flags & 1 << 12) {
+			printf("MS_BIND ");
+		}
+		if ($flags & 1 << 13) {
+			printf("MS_MOVE ");
+		}
+		if ($flags & 1 << 14) {
+			printf("MS_REC ");
+		}
+		printf("(%x), ", $flags);
+		printf("%s) ", @mountopts[tid]);
+		printf("%s -> ", @lowestfailed[tid]);
+		printf("%d\n", @lowesterrno[tid]);
+	}
+
+	delete(@lowesterrno[tid]);
+	delete(@lowestfailed[tid]);
+	delete(@sources[tid]);
+	delete(@mountpoints[tid]);
+	delete(@fstypes[tid]);
+	delete(@mountopts[tid]);
+	delete(@mountflags[tid]);
+}
+
+END
+{
+	clear(@sources);
+	clear(@mountpoints);
+	clear(@fstypes);
+	clear(@lowesterrno);
+	clear(@lowestfailed);
+	clear(@mountopts);
+	clear(@mountflags);
+	clear(@seccomp_is_mnt);
+}
