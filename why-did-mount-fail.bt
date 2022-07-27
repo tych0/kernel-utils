@@ -54,6 +54,7 @@ kretprobe:do_mount,
 kretprobe:path_mount,
 kretprobe:security_sb_mount,
 kretprobe:graft_tree,
+kretprobe:mount_capable,
 
 // overlayfs
 kretprobe:ovl_fill_super
