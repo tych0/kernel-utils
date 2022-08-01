@@ -6,7 +6,7 @@ test programs, but maybe they will be useful to someone else.
 
 # testing kernels
 
-I use Andy Lutomirski's very helpful (virtme)[https://github.com/amluto/virtme]
+I use Andy Lutomirski's very helpful [virtme](https://github.com/amluto/virtme)
 tool to test kernels.
 
 That automates most of the gory bits, except for getting a rootfs, for which I
