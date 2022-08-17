@@ -1,0 +1,39 @@
+#!/bin/bash -ex
+set -o pipefail
+
+kdir=$1
+arch=$2
+
+if [ -z "$kdir" ]; then
+    kdir=linux
+fi
+
+if [ -z "$arch" ]; then
+    arch=x86_64
+fi
+
+if [ -z "$VIRTME_ROOTFS" ]; then
+    VIRTME_ROOTFS=/tmp/virtme-rootfs
+fi
+
+getrootfs "$arch"
+actual_root="$VIRTME_ROOTFS/$arch/rootfs"
+
+python_major=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+
+# this doesn't need to be root, because people could put themselves in the kvm
+# group. but things like apt want to setuid(), and if we run qemu in the host
+# userns, we won't have access to e.g. uid 100 for installing those packages.
+# for now we punt, but we could use lxc-usernsexec here too, as in getrootfs
+sudo PATH=$PATH:$HOME/.local/bin \
+    PYTHONPATH=$HOME/.local/lib/python$python_major/site-packages \
+    $HOME/.local/bin/virtme-run \
+    --cpus 4 \
+    --memory 4G \
+    --net user \
+    --kdir "$HOME/packages/$kdir" \
+    --root "$actual_root" --rw \
+    --mods auto --arch "$arch" \
+    --cwd "$actual_root/$PWD" \
+    --rwdir "$HOME=$HOME" \
+    $@

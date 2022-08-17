@@ -11,66 +11,7 @@ tool to test kernels.
 
 That automates most of the gory bits, except for getting a rootfs, for which I
 abuse the docker hub to allow me to try multiple distros. I place my kernel
-trees in `~/packages/linux$n`, and I have the below code in my .bashrc:
-
-    VIRTME_ROOTFS=/tmp/virtme-rootfs
-    function getrootfs() {
-        arch=$1
-
-        if [ -d "$VIRTME_ROOTFS/$arch" ]; then
-            return
-        fi
-
-        mkdir -p "$VIRTME_ROOTFS"
-
-        skopeo --insecure-policy copy docker://ubuntu:latest oci:/tmp/oci:ubuntu-$arch
-        sudo umoci unpack --image /tmp/oci:ubuntu-$arch "$VIRTME_ROOTFS/$arch"
-
-        # umoci makes things opaque to us
-        sudo chmod 755 "$VIRTME_ROOTFS/$arch"
-        actual_root="$VIRTME_ROOTFS/$arch/rootfs"
-        sudo chown $USER:$USER "$actual_root"
-
-        # ubuntu kernel images don't have a /lib/modules since they're not used to
-        # having a kernel in them. let's fix that.
-        sudo mkdir -p "$actual_root/lib/modules"
-
-        # make somewhere for our home directory to be mounted
-        sudo mkdir -p "$actual_root/home/tycho"
-        sudo chown $USER:$USER "$actual_root/$HOME"
-
-        # now install some extra packages
-        sudo cp /etc/resolv.conf "$actual_root/etc/resolv.conf"
-        sudo chroot "$actual_root" apt -y update
-        sudo chroot "$actual_root" apt -y install iproute2 strace gcc make
-    }
-
-    function runkernel() {
-        kdir=$1
-        shift
-        arch=$2
-        shift
-
-        if [ -z "$kdir" ]; then
-            kdir=linux
-        fi
-
-        if [ -z "$arch" ]; then
-            arch=x86_64
-        fi
-
-        getrootfs "$arch"
-        actual_root="$VIRTME_ROOTFS/$arch/rootfs"
-
-        virtme-run \
-            --kdir "$HOME/packages/$kdir" \
-            --root "$actual_root" --rw \
-            --mods auto --arch "$arch" \
-            --cwd "$actual_root/$PWD" \
-            --term "" \
-            --rwdir "$HOME=$HOME" \
-            $@
-    }
+trees in `~/packages/linux$n`, and I have the `bin/` dir here in my `$PATH`.
 
 This allows me to do things like:
 

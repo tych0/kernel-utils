@@ -1,0 +1,59 @@
+#!/bin/bash -ex
+set -o pipefail
+
+if [ -z "$VIRTME_ROOTFS" ]; then
+    VIRTME_ROOTFS=/tmp/virtme-rootfs
+fi
+arch=$1
+
+if [ -d "$VIRTME_ROOTFS/$arch" ]; then
+    exit 0
+fi
+
+mkdir -p "$VIRTME_ROOTFS"
+
+# FIXME: it should be possible to do this all inside a user namespace, and thus
+# totally unprivileged. unfortunately unshare(1) doesn't allow multi-uid
+# mappings, so we'd need to use something like lxc-usernsexec.
+skopeo --insecure-policy copy docker://ubuntu:jammy oci:/tmp/oci:ubuntu-$arch
+sudo umoci unpack --image /tmp/oci:ubuntu-$arch "$VIRTME_ROOTFS/$arch"
+
+# umoci makes things opaque to us
+sudo chmod 755 "$VIRTME_ROOTFS/$arch"
+actual_root="$VIRTME_ROOTFS/$arch/rootfs"
+
+# ubuntu container images don't have a /lib/modules since they're not used
+# to having a kernel in them. let's fix that.
+sudo mkdir -p "$actual_root/lib/modules"
+
+# make somewhere for our home directory to be mounted
+sudo mkdir -p "$actual_root/$HOME"
+
+# now install some extra packages
+sudo cp /etc/resolv.conf "$actual_root/etc/resolv.conf"
+
+# >= 22.04's apt wants a /dev/null, some postinst wants to look at
+# /proc/modules, etc. of course this is all wrong, but whatever. let's tell it
+# something. virtme will set up modules itself, etc. etc.
+
+function unmount_extras() {
+    sudo umount "$actual_root/dev" || true
+    sudo umount "$actual_root/proc" || true
+    sudo umount "$actual_root/sys" || true
+}
+trap unmount_extras INT TERM EXIT
+
+sudo mount --bind /dev "$actual_root/dev"
+sudo mount --bind /proc "$actual_root/proc"
+sudo mount --bind /sys "$actual_root/sys"
+
+sudo chroot "$actual_root" apt -y update
+sudo chroot "$actual_root" apt -y upgrade
+sudo DEBIAN_FRONTEND=noninteractive chroot "$actual_root" apt-get -y install \
+    iproute2 strace gcc make tmux ncurses-term vim kmod git busybox kbd \
+    bash-completion
+
+# perhaps we should ask systemd-resolved, resolvectl, etc. for DNS? but in
+# any case, since we just have virtme-init, let's use some well known dns
+# server here.
+echo "nameserver 1.1.1.1" > sudo tee "$actual_root/etc/resolv.conf" > /dev/null
