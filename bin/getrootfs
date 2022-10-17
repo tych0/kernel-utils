@@ -51,7 +51,7 @@ sudo chroot "$actual_root" apt -y update
 sudo chroot "$actual_root" apt -y upgrade
 sudo DEBIAN_FRONTEND=noninteractive chroot "$actual_root" apt-get -y install \
     iproute2 strace gcc make tmux ncurses-term vim kmod git busybox kbd \
-    bash-completion
+    bash-completion lsb-release ubuntu-dbgsym-keyring gdb
 
 # perhaps we should ask systemd-resolved, resolvectl, etc. for DNS? but in
 # any case, since we just have virtme-init, let's use some well known dns
