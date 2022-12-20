@@ -1,0 +1,7 @@
+#!/usr/bin/env bpftrace
+
+#include <linux/kernfs.h>
+kprobe:cgroup_rmdir
+{
+  printf("cgroup_rmdir(%s)", str(((struct kernfs_node *)arg0)->name));
+}
