@@ -135,7 +135,7 @@ out_umount:
 	if (umount("bar") < 0)
 		perror("failed to umount(bar)");
 out_rm:
-	if (unlink("foo") < 0)
+	if (unlink("/tmp/foo") < 0)
 		perror("failed to unlink foo");
 	if (rmdir("bar") < 0 && errno != ENOENT)
 		perror("failed to rmdir bar");
