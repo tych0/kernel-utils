@@ -31,6 +31,7 @@ sudo PATH=$PATH:$HOME/.local/bin \
     --cpus 4 \
     --memory 4G \
     --net user \
+    --qemu-opt=-device --qemu-opt=virtio-rng-pci \
     --kdir "$HOME/packages/$kdir" \
     --root "$actual_root" --rw \
     --mods auto --arch "$arch" \
