@@ -23,7 +23,7 @@ int main(void)
 	bool fail = false;
 	unsigned long used;
 
-	disk = open("foo", O_CREAT | O_WRONLY, 666);
+	disk = open("/tmp/foo", O_CREAT | O_WRONLY, 666);
 	if (fd < 0) {
 		perror("open(foo)");
 		return 1;
@@ -36,7 +36,7 @@ int main(void)
 		goto out_rm;
 	}
 
-	if (system("mkfs.xfs -m reflink=1 -i projid32bit=1 -L data foo")) {
+	if (system("mkfs.xfs -m reflink=1 -i projid32bit=1 -L data /tmp/foo")) {
 		printf("mkfs failed\n");
 		goto out_rm;
 	}
@@ -47,7 +47,7 @@ int main(void)
 	}
 
 	// mount foo to bar with prjquota flag
-	if (system("mount -o loop,attr2,prjquota foo bar")) {
+	if (system("mount -o loop,attr2,prjquota /tmp/foo bar")) {
 		printf("mount failed\n");
 		goto out_rm;
 	}
