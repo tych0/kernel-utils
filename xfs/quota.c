@@ -7,6 +7,7 @@
 #include <sys/statvfs.h>
 #include <sys/mount.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 #define MB (1024L * 1024L)
 #define GB (MB * 1024L)
@@ -19,6 +20,8 @@ int main(void)
 	int disk, ret, fd;
 	struct statvfs sb;
 	char cmd[4096];
+	bool fail = false;
+	unsigned long used;
 
 	disk = open("foo", O_CREAT | O_WRONLY, 666);
 	if (fd < 0) {
@@ -86,7 +89,11 @@ int main(void)
 		goto out_umount;
 	}
 
-	printf("statvfs before resize, free space %luMB\n", sb.f_bfree * sb.f_bsize / MB);
+
+	used = sb.f_bfree * sb.f_bsize / MB;
+	if (used > 100)
+		fail = true;
+	printf("statvfs before resize, free space %luMB\n", used);
 	system("df -h bar/proj");
 	system("df -h bar");
 
@@ -117,6 +124,12 @@ int main(void)
 	system("df -h bar/proj");
 	system("df -h bar");
 	ret = 0;
+
+	if (fail) {
+		printf("used more (%luMB) than actual (100MB) in first stat\n", used);
+		ret = 1;
+	}
+
 
 out_umount:
 	if (umount("bar") < 0)
