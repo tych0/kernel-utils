@@ -1,0 +1,26 @@
+#!/bin/bash -e
+
+# the idea here is to automatically detect what the base is. git format-patch
+# --base=auto has weird semantics which aren't really that useful.
+#
+# add the alias:
+#   fp = "!f() { format-patch \"$@\"; }; f"
+#
+# and call it with:
+#   git fp --subject-prefix="PATCH v2" HEAD^
+
+commitish=""
+
+for arg in "$@"; do
+    if git rev-parse --verify "$arg" >& /dev/null; then
+        commitish="$arg"
+        break
+    fi
+done
+
+if [ -z "$commitish" ]; then
+    echo "couldn't base commit in arg list"
+    exit 1
+fi
+
+git format-patch --from="Tycho Andersen <tycho@tycho.pizza>" -M --stat --base="$commitish" "$@"
