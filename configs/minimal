@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86 6.5.0 Kernel Configuration
+# Linux/x86 6.6.0-rc4 Kernel Configuration
 #
 CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"
 CONFIG_CC_IS_GCC=y
@@ -445,6 +445,7 @@ CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS=y
 CONFIG_X86_INTEL_TSX_MODE_OFF=y
 # CONFIG_X86_INTEL_TSX_MODE_ON is not set
 # CONFIG_X86_INTEL_TSX_MODE_AUTO is not set
+# CONFIG_X86_USER_SHADOW_STACK is not set
 CONFIG_EFI=y
 # CONFIG_EFI_STUB is not set
 # CONFIG_EFI_FAKE_MEMMAP is not set
@@ -681,11 +682,13 @@ CONFIG_KVM_INTEL=y
 CONFIG_KVM_AMD=y
 CONFIG_KVM_SMM=y
 # CONFIG_KVM_XEN is not set
+# CONFIG_KVM_PROVE_MMU is not set
 CONFIG_AS_AVX512=y
 CONFIG_AS_SHA1_NI=y
 CONFIG_AS_SHA256_NI=y
 CONFIG_AS_TPAUSE=y
 CONFIG_AS_GFNI=y
+CONFIG_AS_WRUSS=y
 
 #
 # General architecture-dependent options
@@ -1586,6 +1589,11 @@ CONFIG_DMA_SHARED_BUFFER=y
 # CONFIG_MHI_BUS_EP is not set
 # end of Bus devices
 
+#
+# Cache Drivers
+#
+# end of Cache Drivers
+
 CONFIG_CONNECTOR=y
 CONFIG_PROC_EVENTS=y
 
@@ -2116,7 +2124,6 @@ CONFIG_SERIAL_CORE_CONSOLE=y
 CONFIG_SERIAL_NONSTANDARD=y
 # CONFIG_MOXA_INTELLIO is not set
 # CONFIG_MOXA_SMARTIO is not set
-# CONFIG_SYNCLINK_GT is not set
 # CONFIG_N_HDLC is not set
 # CONFIG_N_GSM is not set
 # CONFIG_NOZOMI is not set
@@ -2615,6 +2622,7 @@ CONFIG_HID_EZKEY=y
 # CONFIG_HID_GEMBIRD is not set
 # CONFIG_HID_GFRM is not set
 # CONFIG_HID_GLORIOUS is not set
+# CONFIG_HID_GOOGLE_STADIA_FF is not set
 # CONFIG_HID_VIVALDI is not set
 # CONFIG_HID_KEYTOUCH is not set
 # CONFIG_HID_KYE is not set
@@ -2651,7 +2659,6 @@ CONFIG_HID_PETALYNX=y
 # CONFIG_HID_SEMITEK is not set
 # CONFIG_HID_SPEEDLINK is not set
 # CONFIG_HID_STEAM is not set
-# CONFIG_HID_STEELSERIES is not set
 CONFIG_HID_SUNPLUS=y
 # CONFIG_HID_RMI is not set
 # CONFIG_HID_GREENASIA is not set
@@ -2797,7 +2804,6 @@ CONFIG_RTC_DRV_CMOS=y
 # CONFIG_RTC_DRV_M48T35 is not set
 # CONFIG_RTC_DRV_M48T59 is not set
 # CONFIG_RTC_DRV_MSM6242 is not set
-# CONFIG_RTC_DRV_BQ4802 is not set
 # CONFIG_RTC_DRV_RP5C01 is not set
 
 #
@@ -2823,6 +2829,7 @@ CONFIG_DMA_ACPI=y
 # CONFIG_INTEL_IDXD_COMPAT is not set
 # CONFIG_INTEL_IOATDMA is not set
 # CONFIG_PLX_DMA is not set
+# CONFIG_XILINX_DMA is not set
 # CONFIG_XILINX_XDMA is not set
 # CONFIG_AMD_PTDMA is not set
 # CONFIG_QCOM_HIDMA_MGMT is not set
@@ -3339,7 +3346,6 @@ CONFIG_NLS_ISO8859_1=y
 # CONFIG_NLS_MAC_ROMANIAN is not set
 # CONFIG_NLS_MAC_TURKISH is not set
 CONFIG_NLS_UTF8=y
-# CONFIG_NLS_UCS2_UTILS is not set
 CONFIG_DLM=y
 # CONFIG_DLM_DEBUG is not set
 # CONFIG_UNICODE is not set
