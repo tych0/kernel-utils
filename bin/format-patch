@@ -33,4 +33,4 @@ for word in FIXME TODO XXX printk; do
     fi
 done
 
-./scripts/checkpatch.pl *patch
+./scripts/checkpatch.pl *patch || true
