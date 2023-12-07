@@ -7,9 +7,8 @@
  * welcome.
  *
  * TODO:
- *    1. display mntopts
- *    2. individual filesystem (ext4, xfs, and overlay are probably most common
- *       for containers...)
+ *    2. individual filesystem refusal points (ext4, xfs, and overlay are
+ *       probably most common for containers...)
  */
 #include <linux/seccomp.h>
 
