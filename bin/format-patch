@@ -23,7 +23,7 @@ if [ -z "$commitish" ]; then
     exit 1
 fi
 
-git format-patch --from="Tycho Andersen <tycho@tycho.pizza>" -M --stat --base="$commitish" "$@"
+git format-patch -q --from="Tycho Andersen <tycho@tycho.pizza>" -M --stat --base="$commitish" "$@"
 
 # look for common debugging stuff
 for word in FIXME TODO XXX printk; do
@@ -33,4 +33,4 @@ for word in FIXME TODO XXX printk; do
     fi
 done
 
-./scripts/checkpatch.pl *patch || true
+./scripts/checkpatch.pl --no-summary --terse *patch || true
