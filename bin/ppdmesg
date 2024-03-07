@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# needs CONFIG_DEBUG_INFO
+$HOME/packages/linux/scripts/decode_stacktrace.sh $HOME/packages/linux/vmlinux $HOME/packages/linux < $1
