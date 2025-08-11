@@ -55,6 +55,25 @@ kretprobe:security_sb_mount,
 kretprobe:graft_tree,
 kretprobe:mount_capable,
 
+// new mount API stuff
+kretprobe:vfs_parse_fs_param,
+
+// NFS
+kretprobe:do_nfs4_mount,
+kretprobe:nfs4_create_server,
+//kretprobe:nfs4_init_server,
+kretprobe:nfs4_server_common_setup,
+kretprobe:nfs4_set_client,
+kretprobe:nfs_init_server_rpcclient,
+kretprobe:nfs_get_client,
+//kretprobe:nfs_found_client,
+// kretprobe:nfs_put_client, -> void, what do?
+kretprobe:nfs_wait_client_init_complete,
+kretprobe:nfs_create_rpc_client,
+kretprobe:nfs_init_client,
+kretprobe:nfs40_init_client,
+kretprobe:nfs41_init_client,
+
 // overlayfs
 kretprobe:ovl_fill_super
 {
@@ -69,8 +88,14 @@ kretprobe:ovl_fill_super
 	@lowesterrno[tid] = (int64)retval;
 }
 
+tracepoint:syscalls:sys_exit_fsmount,
+tracepoint:syscalls:sys_exit_fsconfig,
 tracepoint:syscalls:sys_exit_mount
 {
+	if (args.ret < 0) {
+		printf("%s failed with %d\n", probe, args.ret);
+	}
+
 	// i cannot for the life of me figure out how to make this a signed < 0
 	// comparison...
 	if (@lowesterrno[tid] != 0) {
@@ -119,6 +144,23 @@ tracepoint:syscalls:sys_exit_mount
 	delete(@fstypes[tid]);
 	delete(@mountopts[tid]);
 	delete(@mountflags[tid]);
+}
+
+// things with a ptr return value
+//kretprobe:nfs_match_client,
+kretprobe:fc_mount
+{
+	// IS_ERR
+	if (!((int64)retval > -4096 && (int64)retval < 0)) {
+		return;
+	}
+
+	if (@lowesterrno[tid] < 0) {
+		return;
+	}
+
+	@lowestfailed[tid] = probe;
+	@lowesterrno[tid] = (int64)retval;
 }
 
 END
