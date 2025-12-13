@@ -48,6 +48,13 @@ kretprobe:__secure_computing
 	printf("%-6d %-16s mount(?) rejected by seccomp", tid, comm);
 }
 
+kretprobe:sget_fc
+{
+    if (retval != 0) {
+        printf("sget_fc failed in %s (retval=%d)\n", comm, retval);
+    }
+} 
+
 // generic mount entrypoints
 kretprobe:do_mount,
 kretprobe:path_mount,
