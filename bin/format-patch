@@ -33,4 +33,7 @@ for word in FIXME TODO XXX printk; do
     fi
 done
 
+echo "######### checkpatch complaints"
 ./scripts/checkpatch.pl --no-summary --terse *patch || true
+echo "######### recommended CC list"
+./scripts/get_maintainer.pl --email --norolestats --separator ", " --nomultiline *patch
