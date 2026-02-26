@@ -1,0 +1,355 @@
+#!/usr/bin/env python3
+"""
+Sanity check a patch series by building each commit from most recent tag to HEAD.
+Tests all combinations of detected kernel config options.
+"""
+import subprocess
+import sys
+import os
+import re
+import itertools
+import shutil
+from pathlib import Path
+
+def run_cmd(cmd, check=True, capture=True):
+    """Run a command and return the result."""
+    if capture:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    else:
+        result = subprocess.run(cmd, shell=True)
+
+    if check and result.returncode != 0:
+        if capture:
+            print(f"Error running: {cmd}", file=sys.stderr)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+        sys.exit(1)
+    return result
+
+def detect_involved_configs(tag, head):
+    """Detect kernel CONFIG options involved in the patch series."""
+    configs = set()
+
+    # Get the full diff for the series
+    diff_result = run_cmd(f"git diff {tag}..{head}")
+    diff_text = diff_result.stdout
+
+    # Pattern 1: Direct CONFIG_ references in code (#ifdef, #if, etc.)
+    config_pattern = r'\bCONFIG_([A-Z0-9_]+)\b'
+    for match in re.finditer(config_pattern, diff_text):
+        configs.add(match.group(1))
+
+    # Pattern 2: IS_ENABLED(CONFIG_*)
+    is_enabled_pattern = r'IS_ENABLED\s*\(\s*CONFIG_([A-Z0-9_]+)\s*\)'
+    for match in re.finditer(is_enabled_pattern, diff_text):
+        configs.add(match.group(1))
+
+    # Get list of changed files
+    changed_files_result = run_cmd(f"git diff --name-only {tag}..{head}")
+    changed_files = [f.strip() for f in changed_files_result.stdout.split('\n') if f.strip()]
+
+    # Pattern 3: Check Makefiles for conditional compilation of changed files
+    for file_path in changed_files:
+        if not file_path:
+            continue
+
+        # Look for Makefile in the same directory
+        dir_path = os.path.dirname(file_path) if os.path.dirname(file_path) else "."
+        makefile_paths = [
+            os.path.join(dir_path, "Makefile"),
+            os.path.join(dir_path, "Kbuild")
+        ]
+
+        for makefile in makefile_paths:
+            if os.path.isfile(makefile):
+                try:
+                    with open(makefile, 'r') as f:
+                        makefile_content = f.read()
+
+                    # Look for obj-$(CONFIG_*) += filename patterns
+                    basename = os.path.basename(file_path)
+                    basename_no_ext = os.path.splitext(basename)[0]
+
+                    # Match patterns like: obj-$(CONFIG_FOO) += file.o
+                    makefile_pattern = rf'obj-\$\(CONFIG_([A-Z0-9_]+)\)\s*\+?=.*\b{re.escape(basename_no_ext)}\.o\b'
+                    for match in re.finditer(makefile_pattern, makefile_content):
+                        configs.add(match.group(1))
+                except:
+                    pass
+
+    return sorted(configs)
+
+def get_config_type(config_name):
+    """Determine if a config is bool or tristate by checking Kconfig files."""
+    # Search for config definition in Kconfig files
+    result = run_cmd(f"find . -name 'Kconfig*' -type f", check=False)
+    if result.returncode != 0:
+        return 'bool'  # Default to bool if we can't determine
+
+    kconfig_files = result.stdout.strip().split('\n')
+
+    for kconfig_file in kconfig_files:
+        if not kconfig_file:
+            continue
+        try:
+            with open(kconfig_file, 'r') as f:
+                content = f.read()
+
+            # Look for the config definition
+            # Pattern: config CONFIG_NAME followed by tristate or bool
+            pattern = rf'^\s*config\s+{re.escape(config_name)}\s*$'
+            match = re.search(pattern, content, re.MULTILINE)
+
+            if match:
+                # Found the config, now look for the type on the next few lines
+                start_pos = match.end()
+                next_lines = content[start_pos:start_pos+500]
+
+                if re.search(r'^\s*tristate\b', next_lines, re.MULTILINE):
+                    return 'tristate'
+                elif re.search(r'^\s*bool\b', next_lines, re.MULTILINE):
+                    return 'bool'
+        except:
+            continue
+
+    return 'bool'  # Default to bool
+
+def get_config_combinations(configs):
+    """Generate all combinations of config values."""
+    if not configs:
+        return [{}]
+
+    # Determine type for each config
+    config_types = {}
+    for config in configs:
+        config_types[config] = get_config_type(config)
+
+    # Generate possible values for each config
+    config_values = {}
+    for config in configs:
+        if config_types[config] == 'tristate':
+            config_values[config] = ['n', 'y', 'm']
+        else:
+            config_values[config] = ['n', 'y']
+
+    # Generate all combinations
+    keys = list(config_values.keys())
+    value_lists = [config_values[k] for k in keys]
+    combinations = []
+
+    for values in itertools.product(*value_lists):
+        combo = dict(zip(keys, values))
+        combinations.append(combo)
+
+    return combinations
+
+def apply_config_combination(config_combo):
+    """Apply a specific config combination to .config using scripts/config."""
+    if not os.path.exists(".config"):
+        print("Warning: .config not found, creating default config", file=sys.stderr)
+        run_cmd("make defconfig", check=False, capture=True)
+
+    # Backup original config
+    if os.path.exists(".config"):
+        shutil.copy(".config", ".config.backup")
+
+    # Check if scripts/config exists
+    if not os.path.exists("scripts/config"):
+        print("Error: scripts/config not found", file=sys.stderr)
+        sys.exit(1)
+
+    # Apply each config setting using scripts/config
+    for config_name, value in sorted(config_combo.items()):
+        if value == 'n':
+            run_cmd(f"scripts/config --disable {config_name}", check=False, capture=True)
+        elif value == 'y':
+            run_cmd(f"scripts/config --enable {config_name}", check=False, capture=True)
+        elif value == 'm':
+            run_cmd(f"scripts/config --module {config_name}", check=False, capture=True)
+
+    # Run olddefconfig to resolve dependencies
+    run_cmd("make olddefconfig", check=False, capture=True)
+
+    # Verify the configs are set as expected
+    mismatches = []
+    for config_name, expected_value in sorted(config_combo.items()):
+        result = run_cmd(f"scripts/config --state {config_name}", check=False, capture=True)
+        actual_state = result.stdout.strip()
+
+        # Map expected value to state
+        if expected_value == 'n':
+            expected_states = ['undef', 'n']
+        elif expected_value == 'y':
+            expected_states = ['y']
+        elif expected_value == 'm':
+            expected_states = ['m']
+
+        if actual_state not in expected_states:
+            mismatches.append((config_name, expected_value, actual_state))
+
+    if mismatches:
+        print("\n    Warning: Config verification failed after olddefconfig:", file=sys.stderr)
+        for config_name, expected, actual in mismatches:
+            print(f"      CONFIG_{config_name}: expected {expected}, got {actual}", file=sys.stderr)
+        return False
+
+    return True
+
+def format_config_combo(combo):
+    """Format a config combination for display."""
+    if not combo:
+        return "default"
+    parts = []
+    for config, value in sorted(combo.items()):
+        if value == 'n':
+            parts.append(f"{config}=n")
+        elif value == 'y':
+            parts.append(f"{config}=y")
+        elif value == 'm':
+            parts.append(f"{config}=m")
+    return ", ".join(parts)
+
+def main():
+    # Check for uncommitted changes
+    status = run_cmd("git status --porcelain").stdout.strip()
+    if status:
+        print("Error: Working directory has uncommitted changes", file=sys.stderr)
+        print("Please commit or stash your changes first", file=sys.stderr)
+        sys.exit(1)
+
+    # Get current HEAD to restore later
+    current_head = run_cmd("git rev-parse HEAD").stdout.strip()
+    current_branch = run_cmd("git rev-parse --abbrev-ref HEAD", check=False).stdout.strip()
+
+    # Find most recent tag
+    tag_result = run_cmd("git describe --tags --abbrev=0", check=False)
+    if tag_result.returncode != 0:
+        print("Error: No tags found in repository", file=sys.stderr)
+        sys.exit(1)
+
+    most_recent_tag = tag_result.stdout.strip()
+    print(f"Testing commits from {most_recent_tag} to HEAD")
+
+    # Detect involved kernel configs
+    print("\nDetecting involved kernel configurations...")
+    involved_configs = detect_involved_configs(most_recent_tag, current_head)
+
+    if involved_configs:
+        print(f"\nFound {len(involved_configs)} CONFIG options referenced in patches:")
+        for config in involved_configs:
+            config_type = get_config_type(config)
+            print(f"  CONFIG_{config} ({config_type})")
+    else:
+        print("No specific CONFIG options detected, testing with current config only")
+
+    # Generate config combinations
+    config_combinations = get_config_combinations(involved_configs)
+    print(f"\nGenerating {len(config_combinations)} configuration combinations to test")
+
+    if len(config_combinations) > 50:
+        print(f"Warning: Testing {len(config_combinations)} combinations will take significant time")
+        response = input("Continue? [y/N] ")
+        if response.lower() != 'y':
+            print("Aborted")
+            sys.exit(0)
+
+    # Get list of commits
+    commits_result = run_cmd(f"git rev-list {most_recent_tag}..HEAD")
+    commits = commits_result.stdout.strip().split('\n')
+
+    if not commits or commits == ['']:
+        print("No commits to test")
+        return
+
+    commits.reverse()  # Start from oldest to newest
+
+    # Get number of processors
+    nproc_result = run_cmd("nproc", check=False)
+    if nproc_result.returncode == 0:
+        nproc = nproc_result.stdout.strip()
+    else:
+        nproc = "1"
+
+    failed_builds = []
+    total_builds = len(commits) * len(config_combinations)
+    build_count = 0
+
+    try:
+        for commit_idx, commit in enumerate(commits, 1):
+            # Get commit subject
+            subject = run_cmd(f"git log -1 --format=%s {commit}").stdout.strip()
+
+            print(f"\n{'='*70}")
+            print(f"[Commit {commit_idx}/{len(commits)}] {commit[:12]}: {subject}")
+            print('='*70)
+
+            # Checkout commit
+            run_cmd(f"git checkout -q {commit}")
+
+            for combo_idx, combo in enumerate(config_combinations, 1):
+                build_count += 1
+                combo_str = format_config_combo(combo)
+
+                print(f"\n  [{build_count}/{total_builds}] Config combination {combo_idx}/{len(config_combinations)}: {combo_str}")
+
+                # Apply config combination
+                config_ok = apply_config_combination(combo)
+
+                if not config_ok:
+                    print(f"    ✗ SKIPPED (config dependencies prevented desired settings)")
+                    failed_builds.append({
+                        'commit': commit[:12],
+                        'subject': subject,
+                        'config': combo_str,
+                        'error': 'Config verification failed - dependencies prevented desired settings'
+                    })
+                    continue
+
+                # Clean previous build
+                run_cmd("make clean", check=False, capture=True)
+
+                # Build
+                print(f"    Building with make -j{nproc}...", end='', flush=True)
+                build_result = run_cmd(f"make -j{nproc}", check=False, capture=True)
+
+                if build_result.returncode != 0:
+                    print(f" ✗ FAILED")
+                    failed_builds.append({
+                        'commit': commit[:12],
+                        'subject': subject,
+                        'config': combo_str,
+                        'error': build_result.stderr[-500:] if build_result.stderr else ''
+                    })
+                else:
+                    print(f" ✓ OK")
+
+    finally:
+        # Always restore original HEAD and config
+        print(f"\nRestoring original state...")
+        if current_branch and current_branch != "HEAD":
+            run_cmd(f"git checkout -q {current_branch}")
+        else:
+            run_cmd(f"git checkout -q {current_head}")
+
+        if os.path.exists(".config.backup"):
+            shutil.move(".config.backup", ".config")
+
+    # Summary
+    print("\n" + "="*70)
+    print(f"SUMMARY: Tested {total_builds} builds ({len(commits)} commits × {len(config_combinations)} configs)")
+    print("="*70)
+
+    if failed_builds:
+        print(f"\nFAILED: {len(failed_builds)} build(s) failed:\n")
+        for failure in failed_builds:
+            print(f"  {failure['commit']} - {failure['subject']}")
+            print(f"    Config: {failure['config']}")
+            if failure['error']:
+                print(f"    Error: {failure['error'][:200]}...")
+            print()
+        sys.exit(1)
+    else:
+        print(f"\n✓ SUCCESS: All {total_builds} builds passed!")
+
+if __name__ == "__main__":
+    main()
