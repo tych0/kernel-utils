@@ -305,9 +305,6 @@ def main():
                     })
                     continue
 
-                # Clean previous build
-                run_cmd("make clean", check=False, capture=True)
-
                 # Build
                 print(f"    Building with make -j{nproc}...", end='', flush=True)
                 build_result = run_cmd(f"make -j{nproc}", check=False, capture=True)
