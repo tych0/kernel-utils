@@ -342,7 +342,7 @@ def main():
             print(f"  {failure['commit']} - {failure['subject']}")
             print(f"    Config: {failure['config']}")
             if failure['error']:
-                print(f"    Error: {failure['error'][:200]}...")
+                print(f"    Error: {failure['error']}...")
             print()
         sys.exit(1)
     else:
