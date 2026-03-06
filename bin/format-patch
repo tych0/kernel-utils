@@ -12,14 +12,22 @@
 commitish=""
 
 for arg in "$@"; do
-    if git rev-parse --verify "$arg" >& /dev/null; then
+    # Check if arg is a range (contains .. or ...)
+    if [[ "$arg" == *".."* ]]; then
+        # Extract base from range (part before ..)
+        base="${arg%%...*}"
+        if git rev-parse --verify "$base" >& /dev/null; then
+            commitish="$base"
+            break
+        fi
+    elif git rev-parse --verify "$arg" >& /dev/null; then
         commitish="$arg"
         break
     fi
 done
 
 if [ -z "$commitish" ]; then
-    echo "couldn't base commit in arg list"
+    echo "couldn't find base commit in arg list"
     exit 1
 fi
 
@@ -37,3 +45,82 @@ echo "######### checkpatch complaints"
 ./scripts/checkpatch.pl --no-summary --terse *patch || true
 echo "######### recommended CC list"
 ./scripts/get_maintainer.pl --email --norolestats --separator ", " --nomultiline *patch
+
+echo "######### git send-email command"
+# Collect all maintainers from all patches and deduplicate
+python3 - <<'EOPY'
+import subprocess
+import sys
+import re
+import glob
+from collections import OrderedDict
+
+def extract_email(line):
+    """Extract email address from a line for deduplication."""
+    match = re.search(r'<([^>]+)>', line)
+    if match:
+        return match.group(1).strip().lower()
+    return None
+
+# Find all .patch files in current directory
+patch_files = sorted(glob.glob('*.patch'))
+
+if not patch_files:
+    print("No .patch files found", file=sys.stderr)
+    sys.exit(0)
+
+people = OrderedDict()
+lists = OrderedDict()
+
+for patch in patch_files:
+    try:
+        # Use --roles to distinguish between people and lists
+        result = subprocess.run(
+            ['./scripts/get_maintainer.pl', '--email', '--roles', patch],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        for line in result.stdout.strip().split('\n'):
+            if not line:
+                continue
+            # Format is: "Name <email> (role:subsystem)" or "email (role:subsystem)"
+            email = extract_email(line)
+            if not email:
+                # No angle brackets, might be bare email like "x86@kernel.org (maintainer:...)"
+                # Extract email before the opening paren
+                bare_match = re.match(r'^(\S+@\S+)\s+\(', line)
+                if bare_match:
+                    email = bare_match.group(1).strip().lower()
+                    name_email = bare_match.group(1).strip()
+                else:
+                    continue
+            else:
+                # Extract just the name and email part (everything up to and including the >)
+                match = re.match(r'^(.+>)', line)
+                if match:
+                    name_email = match.group(1).strip()
+                else:
+                    name_email = line.strip()
+
+            # Maintainers and reviewers go to --to, everything else to --cc
+            if '(maintainer:' in line or '(reviewer:' in line:
+                people[email] = name_email
+            else:
+                lists[email] = name_email
+    except Exception as e:
+        print(f"Error processing {patch}: {e}", file=sys.stderr)
+
+# Output as git send-email command
+if people or lists:
+    args = []
+    if people:
+        # Escape quotes in names for shell
+        args.extend(f'--to=\'{entry}\'' for entry in people.values())
+    if lists:
+        args.extend(f'--cc=\'{entry}\'' for entry in lists.values())
+    print(f'git id-send-email {" ".join(args)} *.patch')
+else:
+    print("No maintainers found", file=sys.stderr)
+EOPY
