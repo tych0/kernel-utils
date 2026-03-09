@@ -286,6 +286,11 @@ def main():
     else:
         nproc = "1"
 
+    # Save original config before any modifications
+    original_config = None
+    if os.path.exists(".config"):
+        original_config = Path(".config").read_bytes()
+
     failed_builds = []
     total_builds = len(commits) * len(config_combinations)
     build_count = 0
@@ -347,8 +352,12 @@ def main():
         else:
             run_cmd(f"git checkout -q {current_head}")
 
+        if original_config is not None:
+            Path(".config").write_bytes(original_config)
+        elif os.path.exists(".config"):
+            os.remove(".config")
         if os.path.exists(".config.backup"):
-            shutil.move(".config.backup", ".config")
+            os.remove(".config.backup")
 
     # Summary
     print("\n" + "="*70)
