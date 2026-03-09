@@ -210,6 +210,18 @@ def format_config_combo(combo):
     return ", ".join(parts)
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        '--base',
+        metavar='REF',
+        help='Base commit/tag to test from (default: most recent tag)',
+    )
+    args = parser.parse_args()
+
     # Check for uncommitted changes
     status = run_cmd("git status --porcelain").stdout.strip()
     if status:
@@ -221,13 +233,16 @@ def main():
     current_head = run_cmd("git rev-parse HEAD").stdout.strip()
     current_branch = run_cmd("git rev-parse --abbrev-ref HEAD", check=False).stdout.strip()
 
-    # Find most recent tag
-    tag_result = run_cmd("git describe --tags --abbrev=0", check=False)
-    if tag_result.returncode != 0:
-        print("Error: No tags found in repository", file=sys.stderr)
-        sys.exit(1)
+    if args.base:
+        most_recent_tag = args.base
+    else:
+        # Find most recent tag
+        tag_result = run_cmd("git describe --tags --abbrev=0", check=False)
+        if tag_result.returncode != 0:
+            print("Error: No tags found in repository", file=sys.stderr)
+            sys.exit(1)
+        most_recent_tag = tag_result.stdout.strip()
 
-    most_recent_tag = tag_result.stdout.strip()
     print(f"Testing commits from {most_recent_tag} to HEAD")
 
     # Detect involved kernel configs
