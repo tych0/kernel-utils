@@ -128,9 +128,9 @@ def get_config_combinations(configs):
     config_values = {}
     for config in configs:
         if config_types[config] == 'tristate':
-            config_values[config] = ['n', 'y', 'm']
+            config_values[config] = ['y', 'm', 'n']
         else:
-            config_values[config] = ['n', 'y']
+            config_values[config] = ['y', 'n']
 
     # Generate all combinations
     keys = list(config_values.keys())
@@ -290,22 +290,23 @@ def main():
     build_count = 0
 
     try:
-        for commit_idx, commit in enumerate(commits, 1):
-            # Get commit subject
-            subject = run_cmd(f"git log -1 --format=%s {commit}").stdout.strip()
+        for combo_idx, combo in enumerate(config_combinations, 1):
+            combo_str = format_config_combo(combo)
 
             print(f"\n{'='*70}")
-            print(f"[Commit {commit_idx}/{len(commits)}] {commit[:12]}: {subject}")
+            print(f"[Config {combo_idx}/{len(config_combinations)}] {combo_str}")
             print('='*70)
 
-            # Checkout commit
-            run_cmd(f"git checkout -q {commit}")
-
-            for combo_idx, combo in enumerate(config_combinations, 1):
+            for commit_idx, commit in enumerate(commits, 1):
                 build_count += 1
-                combo_str = format_config_combo(combo)
 
-                print(f"\n  [{build_count}/{total_builds}] Config combination {combo_idx}/{len(config_combinations)}: {combo_str}")
+                # Get commit subject
+                subject = run_cmd(f"git log -1 --format=%s {commit}").stdout.strip()
+
+                print(f"\n  [{build_count}/{total_builds}] Commit {commit_idx}/{len(commits)}: {commit[:12]}: {subject}")
+
+                # Checkout commit
+                run_cmd(f"git checkout -q {commit}")
 
                 # Apply config combination
                 config_ok = apply_config_combination(combo)
