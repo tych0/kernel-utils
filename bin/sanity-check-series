@@ -9,6 +9,7 @@ import os
 import re
 import itertools
 import shutil
+import time
 from pathlib import Path
 
 def run_cmd(cmd, check=True, capture=True):
@@ -323,10 +324,12 @@ def main():
 
                 # Build
                 print(f"    Building with make -j{nproc}...", end='', flush=True)
+                build_start = time.monotonic()
                 build_result = run_cmd(f"make -j{nproc}", check=False, capture=True)
+                build_elapsed = time.monotonic() - build_start
 
                 if build_result.returncode != 0:
-                    print(f" ✗ FAILED")
+                    print(f" ✗ FAILED ({build_elapsed:.1f}s)")
                     failed_builds.append({
                         'commit': commit[:12],
                         'subject': subject,
@@ -334,7 +337,7 @@ def main():
                         'error': build_result.stderr[-500:] if build_result.stderr else ''
                     })
                 else:
-                    print(f" ✓ OK")
+                    print(f" ✓ OK ({build_elapsed:.1f}s)")
 
     finally:
         # Always restore original HEAD and config
