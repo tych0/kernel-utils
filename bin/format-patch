@@ -31,7 +31,13 @@ if [ -z "$commitish" ]; then
     exit 1
 fi
 
-git format-patch -q -M --stat --base="$commitish" "$@"
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || true)
+extra_args=()
+if [[ "$branch" =~ -v([0-9]+)$ ]]; then
+    extra_args+=(--subject-prefix="PATCH v${BASH_REMATCH[1]}")
+fi
+
+git format-patch -q -M --stat --base="$commitish" "${extra_args[@]}" "$@"
 
 # look for common debugging stuff
 for word in FIXME TODO XXX printk; do
