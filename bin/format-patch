@@ -37,6 +37,11 @@ if [[ "$branch" =~ -v([0-9]+)$ ]]; then
     extra_args+=(--subject-prefix="PATCH v${BASH_REMATCH[1]}")
 fi
 
+if ls *patch &>/dev/null; then
+    echo "found existing *patch files, refusing to run"
+    exit 1
+fi
+
 git format-patch -q -M --stat --base="$commitish" "${extra_args[@]}" "$@"
 
 # look for common debugging stuff
